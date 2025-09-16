@@ -9,7 +9,7 @@ admin.initializeApp({
   credential: admin.credential.cert({
     projectId: process.env.FIREBASE_PROJECT_ID,
     clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-    privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n'),
+    privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, "\n"),
   }),
 });
 
@@ -86,6 +86,11 @@ app.post("/login", async (req, res) => {
 // home page
 app.get("/home", (req, res) => {
   res.render("home");
+});
+
+// payment page
+app.get("/payments", (req, res) => {
+  res.render("payments");
 });
 
 const PORT = process.env.PORT || 3000;
