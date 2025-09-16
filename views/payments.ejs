@@ -7,7 +7,15 @@
       rel="stylesheet"
     />
   </head>
-  <body class="d-flex vh-100 justify-content-center align-items-center">
+  <body
+    class="d-flex vh-100 justify-content-center align-items-center flex-column"
+  >
     <h1>Halaman Test Payment</h1>
+    <p>Halo, <%= user.fullname %>!</p>
+    <p>Alamat: <%= user.address %></p>
+
+    <form action="/checkout" method="POST">
+      <button type="submit" class="btn btn-success">Checkout</button>
+    </form>
   </body>
 </html>
