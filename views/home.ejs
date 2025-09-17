@@ -7,8 +7,18 @@
       rel="stylesheet"
     />
   </head>
-  <body class="d-flex vh-100 justify-content-center align-items-center">
+  <body
+    class="d-flex flex-column vh-100 justify-content-center align-items-center gap-4"
+  >
     <h1>Home Page</h1>
+
     <a href="/payments" class="btn btn-primary">Test Payment</a>
+
+    <div class="card mt-4" style="width: 400px">
+      <div class="card-body">
+        <h5 class="card-title">Session Debug</h5>
+        <pre><%= JSON.stringify(user, null, 2) %></pre>
+      </div>
+    </div>
   </body>
 </html>

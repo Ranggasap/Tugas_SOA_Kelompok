@@ -23,14 +23,34 @@ const app = express();
 
 // start payments session testing
 const session = require("express-session");
+app.set("trust proxy", true); // jangan pakai 1, biar auto deteksi dari ngrok
+
 app.use(
   session({
-    secret: "my-secret-key", // ganti dengan env SECRET di production
+    secret: process.env.SESSION_SECRET || "my-secret-key",
     resave: false,
     saveUninitialized: false,
-    cookie: { secure: false }, // kalau sudah pakai HTTPS set true
+    proxy: true, // penting kalau pakai ngrok atau proxy
+    cookie: {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+      maxAge: 1000 * 60 * 60,
+    },
   })
 );
+
+app.get("/whoami", (req, res) => {
+  if (req.session.userId) {
+    return res.json({
+      userId: req.session.userId,
+      userEmail: req.session.userEmail,
+      cookie: req.headers.cookie,
+    });
+  }
+  res.json({ message: "Belum login", cookie: req.headers.cookie });
+});
+
 // end payments session testing
 
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -45,7 +65,7 @@ app.use(express.static(path.join(__dirname, "public")));
 
 // route default -> login
 app.get("/", (req, res) => {
-  res.redirect("/login");
+  res.render("login");
 });
 
 // login page
@@ -117,11 +137,13 @@ app.post("/login", async (req, res) => {
 
 // start payments session testing
 function isAuthenticated(req, res, next) {
+  console.log("Session sekarang:", req.session);
   if (req.session.userId) {
     return next();
   }
   res.redirect("/login");
 }
+
 // end payments session testing
 
 // home page
@@ -129,7 +151,8 @@ app.get(
   "/home",
   /*start payments session testing*/ isAuthenticated,
   /*end payments session testing*/ (req, res) => {
-    res.render("home");
+    console.log("🏠 GET /home userId:", req.session.userId);
+    res.render("home", { user: req.session });
   }
 );
 
@@ -196,14 +219,10 @@ app.post("/checkout", isAuthenticated, async (req, res) => {
         quantity: Number(item.productQty || 1),
         name: item.productName || "Item",
       })),
-      // optional: callback/finish_url (redirect user setelah selesai)
-      // finish_redirect_url: process.env.FINISH_URL || "https://your-domain.com/order-success"
     };
 
     const transaction = await snap.createTransaction(parameter);
-
-    // kasih URL snap redirect ke user
-    res.redirect(transaction.redirect_url);
+    res.send(transaction.token);
   } catch (error) {
     console.error("Checkout Error:", error);
     res.status(500).send("Terjadi kesalahan saat checkout!");
@@ -285,10 +304,12 @@ app.post("/midtrans-notification", async (req, res) => {
       await pendingRef.delete();
     } else if (
       transaction_status === "deny" ||
-      transaction_status === "cancel"
+      transaction_status === "cancel" ||
+      transaction_status === "expire"
     ) {
       status = "Failed";
-      // Opsional: hapus pendingOrder juga kalau transaksi gagal
+      await pendingRef.delete();
+      // Opsional: hapus pending Order juga kalau transaksi gagal
     }
     // Simpan order ke Firestore collection "order"
     const orderRef = db.collection("order").doc(order_id);
@@ -321,49 +342,6 @@ app.post("/midtrans-notification", async (req, res) => {
   }
 });
 // end Midtrans notification handler
-
-// start Callback dari Midtrans
-app.post("/midtrans/callback", async (req, res) => {
-  try {
-    const notification = req.body;
-
-    // Bisa pakai midtrans-client buat verifikasi transaksi
-    console.log("Notifikasi Midtrans (callback):", notification);
-
-    const orderId = notification.order_id;
-    const transactionStatus = notification.transaction_status;
-    const paymentType = notification.payment_type;
-    const grossAmount = notification.gross_amount;
-
-    // Jika ingin tetap menyimpan (cadangan), cek apakah order sudah ada
-    const ordersRef = db.collection("order");
-    const q = await ordersRef.where("orderId", "==", orderId).limit(1).get();
-    if (!q.empty) {
-      console.log("Order already exists (callback), skipping write:", orderId);
-      return res.status(200).send("OK");
-    }
-
-    // Simpan ke Firestore (fallback if notification not used)
-    await db
-      .collection("order")
-      .doc(orderId)
-      .set({
-        userid: notification.customer_id || "", // ambil dari custom_field kalau dikirim
-        idproduk: notification.item_details?.map((i) => i.id) || [],
-        payment: paymentType,
-        status: transactionStatus === "settlement" ? "Done" : transactionStatus,
-        tanggal_pemesanan: admin.firestore.FieldValue.serverTimestamp(),
-        total_harga: Number(grossAmount),
-        rawNotification: notification,
-      });
-
-    res.status(200).send("OK");
-  } catch (err) {
-    console.error("Callback error:", err);
-    res.status(500).send("Error");
-  }
-});
-// end Callback dari Midtrans
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
