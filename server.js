@@ -382,46 +382,40 @@ app.listen(PORT, () => {
 });
 
 // Cart Page
-app.get("/cart", async (req, res) => {
-  const phone = req.query.phone;
-  if (!phone) {
-    return res.send("Phone parameter required");
-  }
-  const usersRef = db.collection("users");
-  const snapshot = await usersRef.where("phone", "==", phone).get();
-  if (snapshot.empty) {
-    console.log("User not found");
-    return res.send("User not found");
-  }
-  const userData = snapshot.docs[0].data();
-  console.log("User Data: ", userData);
+app.get("/cart", isAuthenticated, async (req, res) => {
+  const uid = req.session.user.uid;
+  const userDoc = await db.collection("users").doc(uid).get();
+
+  if (!userDoc.exists) return res.send("User not found");
+
+  const userData = userDoc.data();
   const cart = userData.cart || [];
-  console.log("Cart: ", cart);
-  res.render("cart", { cart });
+
+  res.render("cart", { cart, user: userData });
 });
 
-app.post("/cart/update", async(req, res) => {
-  const {phone, index, quantity} = req.body
-})
+app.post("/cart/update", async (req, res) => {
+  const { phone, index, quantity } = req.body;
+});
 
 // History Page
-app.get("/history", async (req, res) => {
-  const userId = req.query.userId;
-  if (!userId) {
-    return res.send("UserId parameter required");
-  }
+app.get("/history", isAuthenticated, async (req, res) => {
   try {
-    const ordersRef = db.collection("order");
-    const snapshot = await ordersRef.where("userid", "==", userId).get();
-    if (snapshot.empty) {
-      console.log("No orders found");
-      return res.send("No orders found");
+    const uid = req.session.user.uid; // ambil dari session
+    const ordersSnap = await db
+      .collection("order")
+      .where("userid", "==", uid)
+      .orderBy("tanggal_pemesanan", "desc")
+      .get();
+
+    if (ordersSnap.empty) {
+      return res.render("history", { orders: [] });
     }
-    const orders = snapshot.docs.map(doc => doc.data());
-    console.log("Orders Data:", orders);
+
+    const orders = ordersSnap.docs.map((doc) => doc.data());
     res.render("history", { orders });
   } catch (error) {
     console.error("Error fetching orders:", error);
     res.send("Error fetching orders");
   }
-})
+});
