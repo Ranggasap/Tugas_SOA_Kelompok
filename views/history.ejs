@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Order History</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+</head>
+<body>
+    <div class="container my-5">
+        <h1 class="mb-4">Order History</h1>
+
+        <%
+        // New dummy orders array shaped as described
+        const orders = [
+            {
+                orderId: "ORD-001",
+                status: "Done",
+                tanggal_pemesanan: "2024-06-10",
+                total_harga: 35000,
+                cart: [
+                    {
+                        idCart: "CART-101",
+                        idProduct: "P001",
+                        productName: "Es Teh Manis",
+                        productPrice: 5000,
+                        productQty: 3
+                    },
+                    {
+                        idCart: "CART-102",
+                        idProduct: "P002",
+                        productName: "Nasi Goreng",
+                        productPrice: 10000,
+                        productQty: 2
+                    }
+                ]
+            },
+            {
+                orderId: "ORD-002",
+                status: "Pending",
+                tanggal_pemesanan: "2024-06-12",
+                total_harga: 26000,
+                cart: [
+                    {
+                        idCart: "CART-103",
+                        idProduct: "P003",
+                        productName: "Ayam Bakar",
+                        productPrice: 13000,
+                        productQty: 2
+                    }
+                ]
+            },
+            {
+                orderId: "ORD-003",
+                status: "Ready to Pick Up",
+                tanggal_pemesanan: "2024-06-13",
+                total_harga: 52000,
+                cart: [
+                    {
+                        idCart: "CART-104",
+                        idProduct: "P004",
+                        productName: "Mie Goreng",
+                        productPrice: 12000,
+                        productQty: 2
+                    },
+                    {
+                        idCart: "CART-105",
+                        idProduct: "P005",
+                        productName: "Jus Alpukat",
+                        productPrice: 14000,
+                        productQty: 2
+                    }
+                ]
+            }
+        ];
+        %>
+
+        <% orders.forEach(order => { %>
+            <div class="card mb-4 shadow-sm w-100">
+                <div class="card-header d-flex justify-content-between align-items-center flex-wrap">
+                    <h5 class="mb-0">History ID: <span class="text-primary"><%= order.orderId %></span></h5>
+                    <span class="badge
+                        <% if(order.status === 'Done') { %> bg-success
+                        <% } else if(order.status === 'Pending') { %> bg-warning text-dark
+                        <% } else if(order.status === 'Ready to Pick Up') { %> bg-info text-dark
+                        <% } else { %> bg-secondary <% } %>">
+                        <%= order.status %>
+                    </span>
+                </div>
+                <div class="card-body">
+                    <p class="mb-3"><strong>Order Date:</strong> <%= order.tanggal_pemesanan %></p>
+                    <ul class="list-group mb-3">
+                        <% order.cart.forEach(product => { %>
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <div>
+                                    <strong><%= product.productName %></strong> &times; <%= product.productQty %>
+                                </div>
+                                <div>
+                                    Rp <%= (product.productPrice * product.productQty).toLocaleString('id-ID') %>
+                                </div>
+                            </li>
+                        <% }) %>
+                    </ul>
+                    <h6 class="text-end">Total Price: Rp <%= order.total_harga.toLocaleString('id-ID') %></h6>
+                </div>
+            </div>
+        <% }) %>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

@@ -92,3 +92,13 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Server running at http://localhost:${PORT}`);
 });
+
+// Cart Page
+app.get("/cart", (req, res) => {
+  res.render("cart");
+});
+
+// History Page
+app.get("/history", (req, res) => {
+  res.render("history")
+})
