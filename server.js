@@ -94,8 +94,22 @@ app.listen(PORT, () => {
 });
 
 // Cart Page
-app.get("/cart", (req, res) => {
-  res.render("cart");
+app.get("/cart", async (req, res) => {
+  const phone = req.query.phone;
+  if (!phone) {
+    return res.send("Phone parameter required");
+  }
+  const usersRef = db.collection("users");
+  const snapshot = await usersRef.where("phone", "==", phone).get();
+  if (snapshot.empty) {
+    console.log("User not found");
+    return res.send("User not found");
+  }
+  const userData = snapshot.docs[0].data();
+  console.log("User Data: ", userData);
+  const cart = userData.cart || [];
+  console.log("Cart: ", cart);
+  res.render("cart", { cart });
 });
 
 // History Page
