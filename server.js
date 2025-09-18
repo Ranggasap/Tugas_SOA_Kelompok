@@ -88,6 +88,22 @@ app.get("/home", (req, res) => {
   res.render("home");
 });
 
+app.get("/detail/:id", (req, res) => {
+  const products = [
+    { id: "1", name: "Bunga Mawar", description: "Mawar merah segar", price: 50000, image: "https://via.placeholder.com/400" },
+    { id: "2", name: "Bunga Tulip", description: "Tulip indah warna-warni", price: 70000, image: "https://via.placeholder.com/400" }
+  ];
+
+  const product = products.find(p => p.id === req.params.id);
+
+  if (product) {
+    res.render("detail", { product });
+  } else {
+    res.status(404).send("Produk tidak ditemukan");
+  }
+});
+
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Server running at http://localhost:${PORT}`);
