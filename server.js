@@ -3,6 +3,7 @@ const express = require("express");
 const bodyParser = require("body-parser");
 const admin = require("firebase-admin");
 const path = require("path");
+const session = require("express-session");
 
 // init firebase admin
 admin.initializeApp({
@@ -22,7 +23,7 @@ const midtransClient = require("midtrans-client");
 const app = express();
 
 // start payments session testing
-const session = require("express-session");
+
 app.set("trust proxy", true); // jangan pakai 1, biar auto deteksi dari ngrok
 
 app.use(
@@ -41,9 +42,9 @@ app.use(
 );
 
 app.get("/whoami", (req, res) => {
-  if (req.session.userId) {
+  if (req.session.user.uid) {
     return res.json({
-      userId: req.session.userId,
+      userId: req.session.user.uid,
       userEmail: req.session.userEmail,
       cookie: req.headers.cookie,
     });
@@ -115,30 +116,43 @@ app.post("/login", async (req, res) => {
   const { email } = req.body;
 
   // cek apakah email ada di firestore
-  const usersRef = db.collection("users");
-  const snapshot = await usersRef.where("email", "==", email).get();
+  try {
+    // cari user berdasarkan email
+    const userRecord = await admin.auth().getUserByEmail(email);
 
-  if (!snapshot.empty) {
-    // start payments session testing
-    const userDoc = snapshot.docs[0];
-    const userData = userDoc.data();
+    // ambil data user di firestore
+    const userDoc = await db.collection("users").doc(userRecord.uid).get();
 
-    // simpan uid ke session
-    req.session.userId = userDoc.id;
-    req.session.userEmail = userData.email;
+    if (!userDoc.exists) {
+      return res.send("User tidak ditemukan di database!");
+    }
 
-    console.log("User logged in:", req.session.userId);
-    // end payments session testing
+    // simpan session
+    req.session.user = {
+      uid: userRecord.uid,
+      email: userRecord.email,
+    };
+
     res.redirect("/home");
-  } else {
-    res.send("User tidak ditemukan!");
+  } catch (error) {
+    console.error("Login Error: ", error);
+    res.send("Login Gagal: " + error.message);
   }
+});
+
+// handle logout
+app.get("/logout", (req, res) => {
+  req.session.destroy((err) => {
+    if (err) {
+      console.error("Error destroying session:", err);
+    }
+    res.redirect("/login");
+  });
 });
 
 // start payments session testing
 function isAuthenticated(req, res, next) {
-  console.log("Session sekarang:", req.session);
-  if (req.session.userId) {
+  if (req.session.user && req.session.user.uid) {
     return next();
   }
   res.redirect("/login");
@@ -151,14 +165,30 @@ app.get(
   "/home",
   /*start payments session testing*/ isAuthenticated,
   /*end payments session testing*/ (req, res) => {
-    console.log("🏠 GET /home userId:", req.session.userId);
-    res.render("home", { user: req.session });
+    console.log("🏠 GET /home userId:", req.session.user.uid);
+    res.render("home", { user: req.session.user });
   }
 );
 
+// profile page
+app.get("/profile", async (req, res) => {
+  if (!req.session.user) {
+    return res.redirect("/login");
+  }
+
+  const uid = req.session.user.uid;
+  const userDoc = await db.collection("users").doc(uid).get();
+
+  if (!userDoc.exists) {
+    return res.send("Data user tidak ditemukan!");
+  }
+
+  res.render("profile", { user: userDoc.data() });
+});
+
 // payment page
 app.get("/payments", isAuthenticated, async (req, res) => {
-  const userDoc = await db.collection("users").doc(req.session.userId).get();
+  const userDoc = await db.collection("users").doc(req.session.user.uid).get();
   const userData = userDoc.data();
 
   res.render("payments", { user: userData });
@@ -168,7 +198,10 @@ app.get("/payments", isAuthenticated, async (req, res) => {
 app.post("/checkout", isAuthenticated, async (req, res) => {
   try {
     // ambil data user dari Firestore pakai session
-    const userDoc = await db.collection("users").doc(req.session.userId).get();
+    const userDoc = await db
+      .collection("users")
+      .doc(req.session.user.uid)
+      .get();
     const userData = userDoc.data();
 
     if (!userData.cart || userData.cart.length === 0) {
@@ -183,11 +216,11 @@ app.post("/checkout", isAuthenticated, async (req, res) => {
     );
 
     // Generate orderId supaya bisa mapping di pendingOrders
-    const orderId = "ORDER-" + req.session.userId + "-" + Date.now();
+    const orderId = "ORDER-" + req.session.user.uid + "-" + Date.now();
 
     // Simpan pending order dulu (berguna saat notifikasi datang)
     await db.collection("pendingOrders").doc(orderId).set({
-      uid: req.session.userId,
+      uid: req.session.user.uid,
       cart: userData.cart,
       grossAmount: totalPrice,
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
