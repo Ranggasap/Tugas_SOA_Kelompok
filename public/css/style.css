@@ -1,4 +1,20 @@
+/* Template */
+:root {
+  --c-primary: #FDAAAA;
+  --c-secondary: #59AC77;
+  --c-dark: #212529;
+  --c-brand-light: #868d95;
+  --c-brand-rgb: 78, 87, 212;
+  --c-body: #8e8d8a;
+  --font-base: "ClashDisplay", sans-serif;
+  --box-shadow: 0px 15px 25px rgba(0,0,0,0.08);
+  --transition: all 0.5s ease;
+}
+
+/* RESET & HELPERS */
 body {
+  font-family: var(--font-base);
+  line-height: 1.7;
   background: #f8f9fa;
 }
 
@@ -18,17 +34,25 @@ body {
 }
 
 /* button */
+.btn {
+  font-weight: 600;
+  font-size: 14px;
+  text-transform: uppercase;
+  border-radius: 0;
+  padding: 10px 24px;
+}
+
 .btn-custom {
   height: 50px;
-  background-color: #FDAAAA;
-  border-color: #59AC77;
+  background-color: var(--c-primary);
+  border-color: var(--c-secondary);
   font-size: 18px;
-  border-radius: 10px;
+  border-radius: 50px;
 }
 
 .btn-custom:hover {
-  background-color: #59AC77;
-  border-color: #FDAAAA;
+  background-color: var(--c-secondary);
+  border-color: var(--c-primary);
   color: white;
 }
 
