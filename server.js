@@ -112,7 +112,28 @@ app.get("/cart", async (req, res) => {
   res.render("cart", { cart });
 });
 
+app.post("/cart/update", async(req, res) => {
+  const {phone, index, quantity} = req.body
+})
+
 // History Page
-app.get("/history", (req, res) => {
-  res.render("history")
+app.get("/history", async (req, res) => {
+  const userId = req.query.userId;
+  if (!userId) {
+    return res.send("UserId parameter required");
+  }
+  try {
+    const ordersRef = db.collection("order");
+    const snapshot = await ordersRef.where("userid", "==", userId).get();
+    if (snapshot.empty) {
+      console.log("No orders found");
+      return res.send("No orders found");
+    }
+    const orders = snapshot.docs.map(doc => doc.data());
+    console.log("Orders Data:", orders);
+    res.render("history", { orders });
+  } catch (error) {
+    console.error("Error fetching orders:", error);
+    res.send("Error fetching orders");
+  }
 })
