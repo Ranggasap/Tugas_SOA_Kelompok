@@ -17,8 +17,15 @@
     "express": "^5.1.0",
     "express-session": "^1.18.2",
     "firebase": "^12.2.1",
-    "firebase-admin": "^13.5.0",
-    "midtrans-client": "^1.4.3",
-    "nodemon": "^3.1.10"
-  }
+    "firebase-admin": "^13.5.0"
+  }, 
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Ranggasap/Tugas_SOA_Kelompok.git"
+  },
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/Ranggasap/Tugas_SOA_Kelompok/issues"
+  },
+  "homepage": "https://github.com/Ranggasap/Tugas_SOA_Kelompok#readme"
 }
