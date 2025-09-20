@@ -21,6 +21,8 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, "views"));
 app.use(express.static(path.join(__dirname, "public")));
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 // setup session
 app.use(
@@ -77,24 +79,6 @@ app.post("/register", async (req, res) => {
   }
 });
 
-
-// Import the functions you need from the SDKs you need
-import { initializeApp } from "firebase/app";
-// TODO: Add SDKs for Firebase products that you want to use
-// https://firebase.google.com/docs/web/setup#available-libraries
-
-// Your web app's Firebase configuration
-const firebaseConfig = {
-  apiKey: "AIzaSyBgSh39-LZUjqwisirJNPF1EIMcRvp_F48",
-  authDomain: "florist-app-70c3d.firebaseapp.com",
-  projectId: "florist-app-70c3d",
-  storageBucket: "florist-app-70c3d.firebasestorage.app",
-  messagingSenderId: "692096916407",
-  appId: "1:692096916407:web:d6a76e5fa2d6c699e2e632"
-};
-
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
 
 // handle login (sederhana untuk sementara)
 app.post("/login", async (req, res) => {
@@ -197,12 +181,12 @@ app.listen(PORT, () => {
 
 // Cart Page
 app.get("/cart", async (req, res) => {
-  const phone = req.query.phone;
-  if (!phone) {
-    return res.send("Phone parameter required");
+  if (!req.session.user) {
+    return res.redirect("/login");
   }
+  const email = req.session.user.email;
   const usersRef = db.collection("users");
-  const snapshot = await usersRef.where("phone", "==", phone).get();
+  const snapshot = await usersRef.where("email", "==", email).get();
   if (snapshot.empty) {
     console.log("User not found");
     return res.send("User not found");
@@ -210,12 +194,73 @@ app.get("/cart", async (req, res) => {
   const userData = snapshot.docs[0].data();
   console.log("User Data: ", userData);
   const cart = userData.cart || [];
-  console.log("Cart: ", cart);
+
+  if (req.headers.accept && req.headers.accept.indexOf("application/json") !== -1) {
+    return res.json({ cart });
+  }
+
   res.render("cart", { cart });
 });
 
 app.post("/cart/update", async(req, res) => {
-  const {phone, index, quantity} = req.body
+  if (!req.session.user) {
+    return res.redirect("/login");
+  }
+  // console.log("Req cart: ", req)
+  try {
+    const userRecord = await admin.auth().getUserByEmail(req.session.user.email);
+    if (!userRecord) {
+      return res.status(404).send("User not found");
+    }
+    const userRef = db.collection("users").doc(userRecord.uid);
+    const userDoc = await userRef.get();
+    if (!userDoc.exists) {
+      return res.status(404).send("User data not found");
+    }
+
+    const { idProduct, productName, productPrice, qty } = req.body;
+    // console.log("idProduct: ", idProduct )
+    let quantity = parseInt(qty);
+    if (isNaN(quantity)) quantity = 0;
+
+    let cart = userDoc.data().cart || [];
+
+    // Check if product exists in cart
+    const productIndex = cart.findIndex(item => item.idProduct === idProduct);
+
+    if (productIndex !== -1) {
+      // Product exists, update quantity
+      cart[productIndex].productQty += quantity;
+
+      // Remove product if qty <= 0
+      if (cart[productIndex].productQty <= 0) {
+        cart.splice(productIndex, 1);
+      }
+    } else {
+      // Product does not exist, add new if qty > 0
+      if (quantity > 0) {
+        let newIdCart = 1;
+        if (cart.length > 0) {
+          const maxId = Math.max(...cart.map(item => item.idCart));
+          newIdCart = maxId + 1;
+        }
+        cart.push({
+          idCart: newIdCart,
+          idProduct: idProduct,
+          productName: productName,
+          productPrice: Number(productPrice),
+          productQty: quantity
+        });
+      }
+    }
+
+    await userRef.update({ cart });
+
+    res.send("Cart updated successfully");
+  } catch (error) {
+    console.error("Error updating cart:", error);
+    res.status(500).send("Error updating cart");
+  }
 })
 
 // History Page

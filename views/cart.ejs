@@ -67,12 +67,45 @@
       btn.addEventListener('click', function() {
         const index = parseInt(this.getAttribute('data-index'));
         const action = this.getAttribute('data-action');
+        let qtyChange = 0;
         if (action === 'increment') {
           cart[index].productQty += 1;
-        } else if (action === 'decrement' && cart[index].productQty > 1) {
-          cart[index].productQty -= 1;
+        } else if (action === 'decrement') {
+          if (cart[index].productQty > 1) {
+            cart[index].productQty -= 1;
+          } else {
+            // jika qty sudah 1 dan di-decrement, hapus item dari cart visual
+            cart.splice(index, 1);
+          }
         }
         updateCartDisplay();
+
+        if (action === 'increment') {
+          qtyChange = 1;
+        } else if (action === 'decrement') {
+          qtyChange = -1;
+        }
+        fetch('/cart/update', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            idProduct: cart[index] ? cart[index].productName : null,
+            productName: cart[index] ? cart[index].productName : null,
+            productPrice: cart[index] ? cart[index].productPrice : null,
+            qty: qtyChange
+          })
+        }).then(response => {
+          if (!response.ok) {
+            throw new Error('Network response was not ok');
+          }
+          return response.json();
+        }).then(data => {
+          updateCartDisplay();
+        }).catch(error => {
+          console.error('Error updating cart:', error);
+        });
       });
     });
     document.getElementById('checkout-btn').addEventListener('click', function() {
