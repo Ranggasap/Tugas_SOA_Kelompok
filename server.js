@@ -3,6 +3,7 @@ const express = require("express");
 const bodyParser = require("body-parser");
 const admin = require("firebase-admin");
 const path = require("path");
+const session = require("express-session");
 
 // init firebase admin
 admin.initializeApp({
@@ -21,6 +22,15 @@ app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, "views"));
 app.use(express.static(path.join(__dirname, "public")));
 
+// setup session
+app.use(
+  session({
+    secret: "secret-key",
+    resave: false,
+    saveUninitialized: false,
+  })
+);
+
 // route default -> login
 app.get("/", (req, res) => {
   res.redirect("/login");
@@ -38,7 +48,7 @@ app.get("/register", (req, res) => {
 
 // handle register
 app.post("/register", async (req, res) => {
-  const { fullname, email, address, phone, password, confirmPassword } =
+  const { fullname, email, phone, password, confirmPassword } =
     req.body;
 
   if (password !== confirmPassword) {
@@ -55,7 +65,6 @@ app.post("/register", async (req, res) => {
     await db.collection("users").doc(user.uid).set({
       fullname,
       email,
-      address,
       phone,
       role: "user",
       createdAt: new Date(),
@@ -92,19 +101,77 @@ app.post("/login", async (req, res) => {
   const { email } = req.body;
 
   // cek apakah email ada di firestore
-  const usersRef = db.collection("users");
-  const snapshot = await usersRef.where("email", "==", email).get();
+  try {
+    // cari user berdasarkan email
+    const userRecord = await admin.auth().getUserByEmail(email);
 
-  if (!snapshot.empty) {
+    // ambil data user di firestore
+    const userDoc = await db.collection("users").doc(userRecord.uid).get();
+
+    if (!userDoc.exists){
+      return res.send("User tidak ditemukan di database!");
+    }
+
+    // simpan session
+    req.session.user = {
+      uid: userRecord.uid,
+      email: userRecord.email,
+    };
+
     res.redirect("/home");
-  } else {
-    res.send("User tidak ditemukan!");
+  } catch (error) {
+    console.error("Login Error: ", error);
+    res.send("Login Gagal: " + error.message);
+  }
+  });
+
+// handle logout
+app.get("/logout", (req, res) => {
+  req.session.destroy((err) => {
+    if (err) {
+      console.error("Error destroying session:", err);
+    }
+    res.redirect("/login");
+  });
+});
+
+
+// home page
+app.get("/home", async (req, res) => {
+  if (!req.session.user) {
+    return res.redirect("/login");
+  }
+
+  try {
+    const uid = req.session.user.uid;
+    const userDoc = await db.collection("users").doc(uid).get();
+
+    if(!userDoc.exists) {
+      return res.send("Data user tidak ditemukan!");
+    }
+
+    const userData = userDoc.data();
+
+    res.render("home", { user: userData});
+  }catch(error){
+    res.send("Error ambil data user: " + error.message);
   }
 });
 
-// home page
-app.get("/home", (req, res) => {
-  res.render("home");
+// profile page
+app.get("/profile", async (req, res) => {
+  if (!req.session.user) {
+    return res.redirect("/login");
+  }
+
+  const uid = req.session.user.uid;
+  const userDoc = await db.collection("users").doc(uid).get();
+
+  if (!userDoc.exists) {
+    return res.send("Data user tidak ditemukan!");
+  }
+
+  res.render("profile", { user: userDoc.data()});
 });
 
 app.get("/detail/:id", (req, res) => {
