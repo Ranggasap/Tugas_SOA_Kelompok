@@ -1,0 +1,26 @@
+<h2>Detail Order</h2>
+<p>Order ID: <%= order.orderId %></p>
+<p>User ID: <%= order.userid %></p>
+<p>Total: Rp <%= order.total_harga %></p>
+<p>Status: <%= order.status %></p>
+
+<form method="POST" action="/order/status/<%= id %>">
+  <label>Ubah Status:</label>
+  <select name="status">
+    <option value="Belum Dibuat" <%= order.status === 'Belum Dibuat' ? 'selected' : '' %>>Belum Dibuat</option>
+    <option value="Sedang Diproses" <%= order.status === 'Sedang Diproses' ? 'selected' : '' %>>Sedang Diproses</option>
+    <option value="Done" <%= order.status === 'Done' ? 'selected' : '' %>>Done</option>
+  </select>
+  <button type="submit">Update</button>
+</form>
+
+<h3>Produk dalam Order:</h3>
+<ul>
+  <% order.cart.forEach(item => { %>
+    <li>
+      <%= item.productName %> - <%= item.productQty %> x Rp <%= item.productPrice %>
+    </li>
+  <% }); %>
+</ul>
+
+<a href="/order">Kembali</a>

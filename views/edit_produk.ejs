@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Edit Produk</title>
+
+  <!-- Bootstrap CSS -->
+  <link rel="stylesheet" href="/css/bootstrap.min.css">
+
+  <style>
+    body {
+      background-color: #fdfdf9;
+    }
+    .header-olive {
+      background-color: #556B2F;
+      color: white;
+    }
+    .btn-olive {
+      background-color: #556B2F;
+      color: white;
+    }
+    .btn-olive:hover {
+      background-color: #445522;
+      color: white;
+    }
+  </style>
+</head>
+<body>
+  <div class="container mt-5">
+    <div class="card shadow">
+      <div class="card-header header-olive">
+        <h4 class="mb-0">Edit Produk</h4>
+      </div>
+      <div class="card-body">
+        <form action="/produk/edit/<%= id %>" method="POST">
+          <div class="mb-3">
+            <label for="nama_produk" class="form-label">Nama Produk</label>
+            <input type="text" name="nama_produk" id="nama_produk" class="form-control" value="<%= id %>" readonly>
+          </div>
+
+          <div class="mb-3">
+            <label for="Deskripsi" class="form-label">Deskripsi</label>
+            <textarea name="Deskripsi" id="Deskripsi" class="form-control" rows="4" required><%= product.Deskripsi %></textarea>
+          </div>
+
+          <div class="mb-3">
+            <label for="Harga" class="form-label">Harga</label>
+            <input type="number" name="Harga" id="Harga" class="form-control" value="<%= product.Harga %>" required>
+          </div>
+
+          <div class="mb-3">
+            <label for="Gambar" class="form-label">Gambar (path)</label>
+            <input type="text" name="Gambar" id="Gambar" class="form-control" value="<%= product.Gambar %>" required>
+          </div>
+
+          <div class="d-flex justify-content-between">
+            <a href="/produk" class="btn btn-secondary">← Kembali</a>
+            <button type="submit" class="btn btn-olive">Update Produk</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bootstrap JS Bundle -->
+  <script src="/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
