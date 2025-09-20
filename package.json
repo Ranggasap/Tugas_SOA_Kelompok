@@ -3,12 +3,13 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "description": "",
+  "description": "Proyek e-commerce sederhana menggunakan Express.js, Firebase (Firestore + Auth), dan Bootstrap.",
   "dependencies": {
     "@google-cloud/storage": "^7.17.1",
     "body-parser": "^2.2.0",
@@ -18,9 +19,18 @@
     "express-session": "^1.18.2",
     "firebase": "^12.2.1",
     "firebase-admin": "^13.5.0",
+    "midtrans-client": "^1.4.3"
+  },
+  "repository": {
+    "type": "git",
     "multer": "^2.0.2"
   },
   "devDependencies": {
-    "nodemon": "^3.1.10"
-  }
+    "url": "git+https://github.com/Ranggasap/Tugas_SOA_Kelompok.git"
+  },
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/Ranggasap/Tugas_SOA_Kelompok/issues"
+  },
+  "homepage": "https://github.com/Ranggasap/Tugas_SOA_Kelompok#readme"
 }
