@@ -1,14 +1,13 @@
 /* Template */
 :root {
-  --c-primary: #f5f5dc;
-  --c-secondary: #556b2f;
+  --c-primary: #FDAAAA;
+  --c-secondary: #59AC77;
   --c-dark: #212529;
   --c-brand-light: #868d95;
   --c-brand-rgb: 78, 87, 212;
   --c-body: #8e8d8a;
-  --font-heading: "Playfair Display", serif;
-  --font-base: "Lato", sans-serif;
-  --box-shadow: 0px 15px 25px rgba(0, 0, 0, 0.08);
+  --font-base: "ClashDisplay", sans-serif;
+  --box-shadow: 0px 15px 25px rgba(0,0,0,0.08);
   --transition: all 0.5s ease;
   --c-accent-pink: #ffc0cb;
   --c-accent-lavender: #e6e6fa;
@@ -24,11 +23,11 @@ body {
 
 .form-container {
   width: 100%;
-  max-width: 500px;
+  max-width: 500px; /* register lebih lebar */
   padding: 30px;
   border-radius: 15px;
   background: #fff;
-  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 8px 16px rgba(0,0,0,0.1);
 }
 
 .form-control {
@@ -48,16 +47,16 @@ body {
 
 .btn-custom {
   height: 50px;
-  background-color: var(--c-secondary);
+  background-color: var(--c-primary);
   border-color: var(--c-secondary);
   font-size: 18px;
   border-radius: 50px;
 }
 
 .btn-custom:hover {
-  background-color: var(--c-primary);
-  border-color: var(--c-secondary);
-  color: var(--c-dark);
+  background-color: var(--c-secondary);
+  border-color: var(--c-primary);
+  color: white;
 }
 
 /* login */
@@ -77,6 +76,7 @@ body {
 .form-container a:hover {
   text-decoration: underline;
 }
+
 
     :root {
       --c-primary: #F5F5DC;
@@ -105,7 +105,7 @@ body {
     }
 
     /* NAVBAR */
-    .navbar-home {
+    .navbar {
       background: rgba(255, 255, 255, 0.95) !important;
       backdrop-filter: blur(10px);
       border-bottom: 1px solid rgba(85, 107, 47, 0.1);
@@ -534,5 +534,3 @@ body {
     .form-container a:hover {
       text-decoration: underline;
     }
-
- 
