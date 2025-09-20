@@ -77,6 +77,25 @@ app.post("/register", async (req, res) => {
   }
 });
 
+
+// Import the functions you need from the SDKs you need
+import { initializeApp } from "firebase/app";
+// TODO: Add SDKs for Firebase products that you want to use
+// https://firebase.google.com/docs/web/setup#available-libraries
+
+// Your web app's Firebase configuration
+const firebaseConfig = {
+  apiKey: "AIzaSyBgSh39-LZUjqwisirJNPF1EIMcRvp_F48",
+  authDomain: "florist-app-70c3d.firebaseapp.com",
+  projectId: "florist-app-70c3d",
+  storageBucket: "florist-app-70c3d.firebasestorage.app",
+  messagingSenderId: "692096916407",
+  appId: "1:692096916407:web:d6a76e5fa2d6c699e2e632"
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+
 // handle login (sederhana untuk sementara)
 app.post("/login", async (req, res) => {
   const { email } = req.body;
@@ -154,6 +173,22 @@ app.get("/profile", async (req, res) => {
 
   res.render("profile", { user: userDoc.data()});
 });
+
+app.get("/detail/:id", (req, res) => {
+  const products = [
+    { id: "1", name: "Bunga Mawar", description: "Mawar merah segar", price: 50000, image: "https://via.placeholder.com/400" },
+    { id: "2", name: "Bunga Tulip", description: "Tulip indah warna-warni", price: 70000, image: "https://via.placeholder.com/400" }
+  ];
+
+  const product = products.find(p => p.id === req.params.id);
+
+  if (product) {
+    res.render("detail", { product });
+  } else {
+    res.status(404).send("Produk tidak ditemukan");
+  }
+});
+
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
