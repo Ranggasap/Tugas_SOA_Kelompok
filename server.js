@@ -5,12 +5,13 @@ const admin = require("firebase-admin");
 const path = require("path");
 const session = require("express-session");
 
-// Setup Firebase Admin dengan menggunakan kredensial yang diunduh
-const serviceAccount = require(path.join(__dirname, 'config', 'florist-app-70c3d-firebase-adminsdk-fbsvc-4b0eaf340b.json'));
-
+// init firebase admin
 admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount),
-  storageBucket: 'florist-app-70c3d.appspot.com', 
+  credential: admin.credential.cert({
+    projectId: process.env.FIREBASE_PROJECT_ID,
+    clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+    privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n'),
+  }),
 });
 
 const db = admin.firestore();
