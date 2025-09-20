@@ -10,14 +10,45 @@ admin.initializeApp({
   credential: admin.credential.cert({
     projectId: process.env.FIREBASE_PROJECT_ID,
     clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-    privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n'),
+    privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, "\n"),
   }),
 });
 
 const db = admin.firestore();
 
+// start payments session testing
+const midtransClient = require("midtrans-client");
+// end payments session testing
+
 const app = express();
+
+// start payments session testing
+
+app.set("trust proxy", true); // jangan pakai 1, biar auto deteksi dari ngrok
+
+app.use(
+  session({
+    secret: process.env.SESSION_SECRET || "my-secret-key",
+    resave: false,
+    saveUninitialized: false,
+    proxy: true, // penting kalau pakai ngrok atau proxy
+    cookie: {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+      maxAge: 1000 * 60 * 60,
+    },
+  })
+);
+
+// end payments session testing
+
 app.use(bodyParser.urlencoded({ extended: true }));
+
+// start payments session testing
+app.use(express.json());
+// end payments session testing
+
 app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, "views"));
 app.use(express.static(path.join(__dirname, "public")));
@@ -35,7 +66,7 @@ app.use(
 
 // route default -> login
 app.get("/", (req, res) => {
-  res.redirect("/login");
+  res.render("login");
 });
 
 // login page
@@ -50,8 +81,7 @@ app.get("/register", (req, res) => {
 
 // handle register
 app.post("/register", async (req, res) => {
-  const { fullname, email, phone, password, confirmPassword } =
-    req.body;
+  const { fullname, email, phone, password, confirmPassword } = req.body;
 
   if (password !== confirmPassword) {
     return res.send("Password dan Konfirmasi Password tidak sama!");
@@ -79,7 +109,6 @@ app.post("/register", async (req, res) => {
   }
 });
 
-
 // handle login (sederhana untuk sementara)
 app.post("/login", async (req, res) => {
   const { email } = req.body;
@@ -91,8 +120,7 @@ app.post("/login", async (req, res) => {
 
     // ambil data user di firestore
     const userDoc = await db.collection("users").doc(userRecord.uid).get();
-
-    if (!userDoc.exists){
+    if (!userDoc.exists) {
       return res.send("User tidak ditemukan di database!");
     }
 
@@ -107,7 +135,7 @@ app.post("/login", async (req, res) => {
     console.error("Login Error: ", error);
     res.send("Login Gagal: " + error.message);
   }
-  });
+});
 
 // handle logout
 app.get("/logout", (req, res) => {
@@ -119,7 +147,6 @@ app.get("/logout", (req, res) => {
   });
 });
 
-
 // home page
 app.get("/home", async (req, res) => {
   if (!req.session.user) {
@@ -130,14 +157,14 @@ app.get("/home", async (req, res) => {
     const uid = req.session.user.uid;
     const userDoc = await db.collection("users").doc(uid).get();
 
-    if(!userDoc.exists) {
+    if (!userDoc.exists) {
       return res.send("Data user tidak ditemukan!");
     }
 
     const userData = userDoc.data();
 
-    res.render("home", { user: userData});
-  }catch(error){
+    res.render("home", { user: userData });
+  } catch (error) {
     res.send("Error ambil data user: " + error.message);
   }
 });
@@ -155,28 +182,34 @@ app.get("/profile", async (req, res) => {
     return res.send("Data user tidak ditemukan!");
   }
 
-  res.render("profile", { user: userDoc.data()});
+  res.render("profile", { user: userDoc.data() });
 });
 
 app.get("/detail/:id", (req, res) => {
   const products = [
-    { id: "1", name: "Bunga Mawar", description: "Mawar merah segar", price: 50000, image: "https://via.placeholder.com/400" },
-    { id: "2", name: "Bunga Tulip", description: "Tulip indah warna-warni", price: 70000, image: "https://via.placeholder.com/400" }
+    {
+      id: "1",
+      name: "Bunga Mawar",
+      description: "Mawar merah segar",
+      price: 50000,
+      image: "https://via.placeholder.com/400",
+    },
+    {
+      id: "2",
+      name: "Bunga Tulip",
+      description: "Tulip indah warna-warni",
+      price: 70000,
+      image: "https://via.placeholder.com/400",
+    },
   ];
 
-  const product = products.find(p => p.id === req.params.id);
+  const product = products.find((p) => p.id === req.params.id);
 
   if (product) {
     res.render("detail", { product });
   } else {
     res.status(404).send("Produk tidak ditemukan");
   }
-});
-
-
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`Server running at http://localhost:${PORT}`);
 });
 
 // Cart Page
@@ -195,20 +228,25 @@ app.get("/cart", async (req, res) => {
   console.log("User Data: ", userData);
   const cart = userData.cart || [];
 
-  if (req.headers.accept && req.headers.accept.indexOf("application/json") !== -1) {
+  if (
+    req.headers.accept &&
+    req.headers.accept.indexOf("application/json") !== -1
+  ) {
     return res.json({ cart });
   }
 
   res.render("cart", { cart });
 });
 
-app.post("/cart/update", async(req, res) => {
+app.post("/cart/update", async (req, res) => {
   if (!req.session.user) {
     return res.redirect("/login");
   }
   // console.log("Req cart: ", req)
   try {
-    const userRecord = await admin.auth().getUserByEmail(req.session.user.email);
+    const userRecord = await admin
+      .auth()
+      .getUserByEmail(req.session.user.email);
     if (!userRecord) {
       return res.status(404).send("User not found");
     }
@@ -226,7 +264,7 @@ app.post("/cart/update", async(req, res) => {
     let cart = userDoc.data().cart || [];
 
     // Check if product exists in cart
-    const productIndex = cart.findIndex(item => item.idProduct === idProduct);
+    const productIndex = cart.findIndex((item) => item.idProduct === idProduct);
 
     if (productIndex !== -1) {
       // Product exists, update quantity
@@ -241,7 +279,7 @@ app.post("/cart/update", async(req, res) => {
       if (quantity > 0) {
         let newIdCart = 1;
         if (cart.length > 0) {
-          const maxId = Math.max(...cart.map(item => item.idCart));
+          const maxId = Math.max(...cart.map((item) => item.idCart));
           newIdCart = maxId + 1;
         }
         cart.push({
@@ -249,7 +287,7 @@ app.post("/cart/update", async(req, res) => {
           idProduct: idProduct,
           productName: productName,
           productPrice: Number(productPrice),
-          productQty: quantity
+          productQty: quantity,
         });
       }
     }
@@ -261,26 +299,236 @@ app.post("/cart/update", async(req, res) => {
     console.error("Error updating cart:", error);
     res.status(500).send("Error updating cart");
   }
-})
+});
 
 // History Page
 app.get("/history", async (req, res) => {
-  const userId = req.query.userId;
-  if (!userId) {
-    return res.send("UserId parameter required");
+  if (!req.session.user) {
+    return res.redirect("/login");
   }
   try {
-    const ordersRef = db.collection("order");
-    const snapshot = await ordersRef.where("userid", "==", userId).get();
-    if (snapshot.empty) {
-      console.log("No orders found");
-      return res.send("No orders found");
+    const uid = req.session.user.uid; // ambil dari session
+    const ordersSnap = await db
+      .collection("order")
+      .where("userid", "==", uid)
+      .orderBy("tanggal_pemesanan", "desc")
+      .get();
+
+    if (ordersSnap.empty) {
+      return res.render("history", { orders: [] });
     }
-    const orders = snapshot.docs.map(doc => doc.data());
-    console.log("Orders Data:", orders);
+
+    const orders = ordersSnap.docs.map((doc) => doc.data());
     res.render("history", { orders });
   } catch (error) {
     console.error("Error fetching orders:", error);
     res.send("Error fetching orders");
   }
-})
+});
+
+// payment page
+app.get("/payments", async (req, res) => {
+  if (!req.session.user) {
+    return res.redirect("/login");
+  }
+
+  const userDoc = await db.collection("users").doc(req.session.user.uid).get();
+  if (!userDoc.exists) {
+    return res.send("Data user tidak ditemukan!");
+  }
+
+  const userData = userDoc.data();
+  res.render("payments", { user: userData });
+});
+
+// start checkout route
+app.post("/checkout", async (req, res) => {
+  if (!req.session.user) {
+    return res.status(401).send("Silakan login dulu!");
+  }
+
+  try {
+    const userDoc = await db
+      .collection("users")
+      .doc(req.session.user.uid)
+      .get();
+    if (!userDoc.exists) {
+      return res.status(404).send("User tidak ditemukan!");
+    }
+
+    const userData = userDoc.data();
+
+    if (!userData.cart || userData.cart.length === 0) {
+      return res.send("Keranjang kosong!");
+    }
+
+    // hitung total harga
+    const totalPrice = userData.cart.reduce(
+      (sum, item) =>
+        sum + Number(item.productPrice || 0) * Number(item.productQty || 1),
+      0
+    );
+
+    const orderId = "ORDER-" + req.session.user.uid + "-" + Date.now();
+
+    await db.collection("pendingOrders").doc(orderId).set({
+      uid: req.session.user.uid,
+      cart: userData.cart,
+      grossAmount: totalPrice,
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+
+    let snap = new midtransClient.Snap({
+      isProduction: false,
+      serverKey: process.env.MIDTRANS_SERVER_KEY,
+      clientKey: process.env.MIDTRANS_CLIENT_KEY,
+    });
+
+    const parameter = {
+      transaction_details: {
+        order_id: orderId,
+        gross_amount: totalPrice,
+      },
+      customer_details: {
+        first_name: userData.fullname,
+        email: userData.email,
+        phone: userData.phone,
+        billing_address: {
+          address: userData.address,
+        },
+      },
+      item_details: userData.cart.map((item) => ({
+        id: item.idProduct || item.idCart || String(Math.random()).slice(2),
+        price: Number(item.productPrice || 0),
+        quantity: Number(item.productQty || 1),
+        name: item.productName || "Item",
+      })),
+    };
+
+    const transaction = await snap.createTransaction(parameter);
+    res.send(transaction.token);
+  } catch (error) {
+    console.error("Checkout Error:", error);
+    res.status(500).send("Terjadi kesalahan saat checkout!");
+  }
+});
+
+// end checkout route
+
+// Midtrans notification handler
+const crypto = require("crypto");
+app.post("/midtrans-notification", async (req, res) => {
+  try {
+    // gunakan body yang sudah di-parse oleh app.use(express.json())
+    const notif = req.body;
+    console.log("📩 Midtrans notification received:", notif);
+
+    const {
+      order_id,
+      status_code,
+      gross_amount,
+      signature_key,
+      transaction_status,
+      payment_type,
+    } = notif;
+
+    // verify signature
+    const serverKey = process.env.MIDTRANS_SERVER_KEY;
+    const input = `${order_id}${status_code}${gross_amount}${serverKey}`;
+    const computed = crypto.createHash("sha512").update(input).digest("hex");
+
+    if (computed !== signature_key) {
+      console.warn(
+        "❌ Invalid signature for order",
+        order_id,
+        "computed:",
+        computed,
+        "received:",
+        signature_key
+      );
+      return res.status(400).send("Invalid signature");
+    }
+
+    console.log("✅ Signature verified for order:", order_id);
+
+    // ambil pendingOrder yg sebelumnya kita simpan saat checkout
+    const pendingRef = db.collection("pendingOrders").doc(order_id);
+    const pendingSnap = await pendingRef.get();
+    if (!pendingSnap.exists) {
+      console.warn("⚠️ pendingOrder tidak ditemukan for", order_id);
+      // Balas OK supaya Midtrans tidak retry terus; atau log untuk investigasi.
+      return res.status(200).send("OK");
+    }
+
+    const pendingData = pendingSnap.data();
+    const uid = pendingData.uid;
+    const cart = pendingData.cart || [];
+
+    // 🔹 Tambahkan verifikasi gross_amount disini
+    const expectedAmount = cart.reduce(
+      (sum, item) =>
+        sum + Number(item.productPrice || 0) * Number(item.productQty || 1),
+      0
+    );
+
+    if (Number(gross_amount) !== expectedAmount) {
+      console.warn(
+        `⚠️ Gross amount mismatch! Order: ${order_id}, expected: ${expectedAmount}, received: ${gross_amount}`
+      );
+      return res.status(400).send("Amount mismatch");
+    }
+
+    // Tentukan status final
+    let status = "Pending";
+    if (
+      transaction_status === "settlement" ||
+      transaction_status === "capture"
+    ) {
+      status = "Done";
+      // Hapus pending order hanya jika status final
+      await pendingRef.delete();
+    } else if (
+      transaction_status === "deny" ||
+      transaction_status === "cancel" ||
+      transaction_status === "expire"
+    ) {
+      status = "Failed";
+      await pendingRef.delete();
+      // Opsional: hapus pending Order juga kalau transaksi gagal
+    }
+    // Simpan order ke Firestore collection "order"
+    const orderRef = db.collection("order").doc(order_id);
+    await orderRef.set({
+      orderId: order_id,
+      userid: uid,
+      idproduk: cart.map((i) => i.idProduct || i.idCart || ""),
+      cart: cart,
+      total_harga: Number(gross_amount),
+      payment: (payment_type || "").toUpperCase(),
+      status,
+      tanggal_pemesanan: admin.firestore.FieldValue.serverTimestamp(),
+      rawNotification: notif,
+    });
+
+    console.log("🎉 Order updated to Firestore:", order_id);
+
+    // Bersihkan cart user (opsional)
+    try {
+      await db.collection("users").doc(uid).update({ cart: [] });
+      console.log("🧹 Cart cleared for user:", uid);
+    } catch (e) {
+      console.warn("⚠️ Gagal membersihkan cart untuk user:", uid, e.message);
+    }
+
+    res.status(200).send("OK");
+  } catch (error) {
+    console.error("Midtrans Notification Error:", error);
+    return res.status(500).send("Error");
+  }
+});
+// end Midtrans notification handler
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`Server running at http://localhost:${PORT}`);
+});
