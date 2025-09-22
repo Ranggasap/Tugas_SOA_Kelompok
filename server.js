@@ -17,7 +17,6 @@ admin.initializeApp({
 
 const db = admin.firestore();
 // start payments session testing
-const midtransClient = require("midtrans-client");
 // end payments session testing
 
 const app = express();
@@ -386,18 +385,22 @@ app.get("/history", async (req, res) => {
     return res.redirect("/login");
   }
   try {
-    const uid = req.session.user.uid; // ambil dari session
+    const userId = req.session.user.uid; // ambil dari session
     const ordersSnap = await db
       .collection("order")
-      .where("userid", "==", uid)
-      .orderBy("tanggal_pemesanan", "desc")
+      .where("userid", "==", userId)
       .get();
 
     if (ordersSnap.empty) {
       return res.render("history", { orders: [] });
     }
 
-    const orders = ordersSnap.docs.map((doc) => doc.data());
+    let orders = ordersSnap.docs.map((doc) => doc.data());
+    orders.sort((a, b) => {
+      const dateA = a.tanggal_pemesanan?.toDate ? a.tanggal_pemesanan.toDate() : a.tanggal_pemesanan;
+      const dateB = b.tanggal_pemesanan?.toDate ? b.tanggal_pemesanan.toDate() : b.tanggal_pemesanan;
+      return new Date(dateB) - new Date(dateA);
+    });
     res.render("history", { orders });
   } catch (error) {
     console.error("Error fetching orders:", error);
