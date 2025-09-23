@@ -12,6 +12,7 @@
   "description": "Proyek e-commerce sederhana menggunakan Express.js, Firebase (Firestore + Auth), dan Bootstrap.",
   "dependencies": {
     "@google-cloud/storage": "^7.17.1",
+    "@ngrok/ngrok": "^1.5.2",
     "body-parser": "^2.2.0",
     "dotenv": "^17.2.2",
     "ejs": "^3.1.10",

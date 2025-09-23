@@ -7,27 +7,27 @@
 </head>
 <body class="d-flex vh-100 justify-content-center align-items-center">
   <form action="/register" method="POST" class="form-container">
-    <h3 class="mb-4 text-center">Buat Akun</h3>
+    <h3 class="mb-4 text-center fs-1 fw-bold">Registration</h3>
     
     <div class="mb-3">
-      <input type="text" name="fullname" class="form-control" placeholder="Nama Lengkap" required>
+      <input type="text" name="fullname" class="form-control" placeholder="Full Name" required>
     </div>
     <div class="mb-3">
       <input type="email" name="email" class="form-control" placeholder="Email" required>
     </div>
     <div class="mb-3">
-      <input type="text" name="phone" class="form-control" placeholder="No Telepon" required>
+      <input type="text" name="phone" class="form-control" placeholder="Phone" required>
     </div>
     <div class="mb-3">
       <input type="password" name="password" class="form-control" placeholder="Password" required>
     </div>
     <div class="mb-3">
-      <input type="password" name="confirmPassword" class="form-control" placeholder="Konfirmasi Password" required>
+      <input type="password" name="confirmPassword" class="form-control" placeholder="Password Confirmation" required>
     </div>
     
     <button type="submit" class="btn w-100 btn-custom">Register</button>
     <p class="text-center mt-3">
-      <a href="/login">Sudah punya akun? Login</a>
+      <a href="/login" class="fw-bold">Already have account? Login</a>
     </p>
   </form>
 </body>

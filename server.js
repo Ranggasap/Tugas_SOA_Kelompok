@@ -16,8 +16,6 @@ admin.initializeApp({
 });
 
 const db = admin.firestore();
-// start payments session testing
-// end payments session testing
 
 const app = express();
 
@@ -41,13 +39,12 @@ app.use(
 );
 
 // end payments session testing
-
 app.use(bodyParser.urlencoded({ extended: true }));
 
 // start payments session testing
 app.use(express.json());
-// end payments session testing
 
+// end payments session testing
 app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, "views"));
 app.use(express.static(path.join(__dirname, "public")));
