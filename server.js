@@ -72,21 +72,25 @@ app.set("views", path.join(__dirname, "views"));
 app.use(express.static(path.join(__dirname, "public")));
 app.use(express.json());
 
-// Route default -> login
+
+
+// Login page (ini untuk login)
 app.get("/", (req, res) => {
   if (req.session.user) {
-    return res.render(req.session.user.role === "admin" ? "/home_admin" : "home");
+    return res.redirect(req.session.user.role === "admin" ? "/home_admin" : "/home");
   }
-  res.render("login");
+  res.render("login", { error: null });
 });
 
-// Login page
+
+// ini untuk log out
 app.get("/login", (req, res) => {
   if (req.session.user) {
     return res.redirect(req.session.user.role === "admin" ? "/home_admin" : "/home");
   }
-  res.render("login");
+  res.render("login", { error: null }); // ✅ tambahkan "error" supaya tidak undefined
 });
+
 
 // Register page
 app.get("/register", (req, res) => {
@@ -122,37 +126,48 @@ app.post("/register", async (req, res) => {
 });
 
 // Handle login
+const axios = require("axios");
+
 app.post("/login", async (req, res) => {
-  const { email } = req.body;
+  const { email, password } = req.body;
 
   try {
-    // Cari user berdasarkan email
-    const userRecord = await admin.auth().getUserByEmail(email);
+    // Kirim request ke Firebase Auth REST API
+    const response = await axios.post(
+      `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${process.env.FIREBASE_WEB_API_KEY}`,
+      {
+        email,
+        password,
+        returnSecureToken: true,
+      }
+    );
 
-    // Ambil data user di firestore
-    const userDoc = await db.collection("users").doc(userRecord.uid).get();
-    if (!userDoc.exists)  {
+    const firebaseUid = response.data.localId;
+
+    // Ambil data user dari Firestore
+    const userDoc = await db.collection("users").doc(firebaseUid).get();
+    if (!userDoc.exists) {
       return res.send("User tidak ditemukan di database!");
     }
 
-    // Simpan session
+    const userData = userDoc.data();
+
     req.session.user = {
-      uid: userRecord.uid,
-      email: userRecord.email,
-      role: userDoc.data().role, // tambahkan role ke session
+      uid: firebaseUid,
+      email: email,
+      role: userData.role,
     };
 
-    // Cek role user dan arahkan ke halaman yang sesuai
-    if (userDoc.data().role === "admin") {
-      res.redirect("/home_admin"); // untuk admin
+    if (userData.role === "admin") {
+      res.redirect("/home_admin");
     } else {
-      res.redirect("/home"); // untuk user biasa
+      res.redirect("/home");
     }
   } catch (error) {
-    console.error("Login Error: ", error);
-    res.send("Login Gagal: " + error.message);
+    console.error("Login Error:", error.response?.data || error.message);
+    res.render("login", { error: "Email atau password salah!" });
   }
-  });
+});
 
 // Handle logout
 app.get("/logout", (req, res) => {

@@ -102,20 +102,28 @@
                   <td>
                     <form action="/order/status/<%= order.id %>" method="POST">
                       <div class="input-group input-group-sm">
-                        <select class="form-select fw-bold
-                          <%= order.status === 'Done' ? 'bg-success text-white' : '' %>
-                          <%= order.status === 'Sedang Diproses' ? 'bg-warning text-dark' : '' %>
-                          <%= order.status === 'Belum Dibuat' ? 'bg-danger text-white' : '' %>"
+                        <select
+                          class="form-select fw-bold
+                            <%= order.status === 'Belum Dibuat' ? 'bg-primary text-white' : '' %>
+                            <%= order.status === 'Sedang Diproses' ? 'bg-warning text-dark' : '' %>
+                            <%= order.status === 'Done' ? 'bg-success text-white' : '' %>"
                           name="status"
                           onchange="this.form.submit()">
-                  
-                          <option class="bg-danger text-white" value="Belum Dibuat" <%= order.status === 'Belum Dibuat' ? 'selected' : '' %>>Belum Dibuat</option>
-                          <option class="bg-warning text-dark" value="Sedang Diproses" <%= order.status === 'Sedang Diproses' ? 'selected' : '' %>>Sedang Diproses</option>
-                          <option class="bg-success text-white" value="Done" <%= order.status === 'Done' ? 'selected' : '' %>>Selesai</option>
-                  
+                    
+                          <option class="bg-primary text-white" value="Belum Dibuat" <%= order.status === 'Belum Dibuat' ? 'selected' : '' %>>
+                            Belum Dibuat
+                          </option>
+                          <option class="bg-warning text-dark" value="Sedang Diproses" <%= order.status === 'Sedang Diproses' ? 'selected' : '' %>>
+                            Sedang Diproses
+                          </option>
+                          <option class="bg-success text-white" value="Done" <%= order.status === 'Done' ? 'selected' : '' %>>
+                            Selesai
+                          </option>
+                    
                         </select>
                       </div>
                     </form>
+                    
                   </td>
                   <td>Rp <%= order.total_harga ? order.total_harga.toLocaleString('id-ID') : 0 %></td>
                   <td>
