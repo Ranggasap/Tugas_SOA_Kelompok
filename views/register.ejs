@@ -1,34 +1,90 @@
 <!DOCTYPE html>
 <html>
-<head>
-  <title>Register</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link href="/css/style.css" rel="stylesheet">
-</head>
-<body class="d-flex vh-100 justify-content-center align-items-center">
-  <form action="/register" method="POST" class="form-container">
-    <h3 class="mb-4 text-center fs-1 fw-bold">Registration</h3>
-    
-    <div class="mb-3">
-      <input type="text" name="fullname" class="form-control" placeholder="Full Name" required>
-    </div>
-    <div class="mb-3">
-      <input type="email" name="email" class="form-control" placeholder="Email" required>
-    </div>
-    <div class="mb-3">
-      <input type="text" name="phone" class="form-control" placeholder="Phone" required>
-    </div>
-    <div class="mb-3">
-      <input type="password" name="password" class="form-control" placeholder="Password" required>
-    </div>
-    <div class="mb-3">
-      <input type="password" name="confirmPassword" class="form-control" placeholder="Password Confirmation" required>
-    </div>
-    
-    <button type="submit" class="btn w-100 btn-custom">Register</button>
-    <p class="text-center mt-3">
-      <a href="/login" class="fw-bold">Already have account? Login</a>
-    </p>
-  </form>
-</body>
+  <head>
+    <title>Register</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css"
+      rel="stylesheet"
+    />
+    <link href="/css/style.css" rel="stylesheet" />
+  </head>
+  <body class="d-flex vh-100 justify-content-center align-items-center">
+    <form
+      action="/register"
+      method="POST"
+      class="form-container position-relative"
+    >
+      <h3 class="mb-4 text-center fs-1 fw-bold">Registration</h3>
+
+      <% if (error) { %>
+      <div class="alert alert-danger" role="alert"><%= error %></div>
+      <% } %>
+
+      <div class="mb-3 position-relative">
+        <input
+          type="text"
+          name="fullname"
+          class="form-control"
+          placeholder="Full Name"
+          required
+        />
+      </div>
+      <div class="mb-3 position-relative">
+        <input
+          type="email"
+          name="email"
+          class="form-control"
+          placeholder="Email"
+          required
+        />
+      </div>
+      <div class="mb-3 position-relative">
+        <input
+          type="text"
+          name="phone"
+          class="form-control"
+          placeholder="Phone"
+          required
+        />
+      </div>
+
+      <div class="mb-3 position-relative">
+        <input
+          type="password"
+          name="password"
+          id="password"
+          class="form-control"
+          placeholder="Password"
+          required
+        />
+        <i class="bi bi-eye-slash toggle-password" id="togglePassword"></i>
+      </div>
+
+      <div class="mb-3 position-relative">
+        <input
+          type="password"
+          id="confirmPassword"
+          name="confirmPassword"
+          class="form-control"
+          placeholder="Confirm Password"
+          required
+        />
+        <i
+          class="bi bi-eye-slash toggle-password"
+          id="toggleConfirmPassword"
+        ></i>
+      </div>
+
+      <button type="submit" class="btn w-100 btn-custom">Register</button>
+      <p class="text-center mt-3">
+        <a href="/login" class="fw-bold">Already have account? Login</a>
+      </p>
+    </form>
+
+    <script src="/js/register.js"></script>
+  </body>
 </html>
