@@ -96,6 +96,20 @@ body {
   background: white;
 }
 
+/* Icon Form control */
+.toggle-password {
+  position: absolute;
+  right: 15px;
+  top: 50%;
+  transform: translateY(-50%);
+  cursor: pointer;
+  color: #000;
+  font-weight: bold;
+}
+.toggle-password:hover {
+  color: var(--c-secondary);
+}
+
 /* NAVBAR */
 .navbar {
   background: rgba(255, 255, 255, 0.95) !important;

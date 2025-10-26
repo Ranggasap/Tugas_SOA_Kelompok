@@ -1,26 +1,14 @@
 require("dotenv").config();
 const express = require("express");
 const bodyParser = require("body-parser");
-const admin = require("firebase-admin");
 const path = require("path");
 const session = require("express-session");
 const midtransClient = require("midtrans-client");
-
-// Init Firebase Admin
-admin.initializeApp({
-  credential: admin.credential.cert({
-    projectId: process.env.FIREBASE_PROJECT_ID,
-    clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-    privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, "\n"),
-  }),
-});
-
-const db = admin.firestore();
+const { admin, db } = require("./firebase/firestore");
 
 const app = express();
 
 // start payments session testing
-
 app.set("trust proxy", true); // jangan pakai 1, biar auto deteksi dari ngrok
 
 app.use(
@@ -51,6 +39,9 @@ app.use(express.static(path.join(__dirname, "public")));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Middleware & Session Configuration
+app.set("trust proxy", true);
+
 // Session setup with cookie options
 app.use(
   session({
@@ -72,113 +63,13 @@ app.set("views", path.join(__dirname, "views"));
 app.use(express.static(path.join(__dirname, "public")));
 app.use(express.json());
 
+const authRoutes = require("./routes/authRoutes");
+app.use("/", authRoutes);
 
-
-// Login page (ini untuk login)
+// Redirect default ke halaman login
 app.get("/", (req, res) => {
-  if (req.session.user) {
-    return res.redirect(req.session.user.role === "admin" ? "/home_admin" : "/home");
-  }
-  res.render("login", { error: null });
+  return res.redirect("/login");
 });
-
-
-// ini untuk log out
-app.get("/login", (req, res) => {
-  if (req.session.user) {
-    return res.redirect(req.session.user.role === "admin" ? "/home_admin" : "/home");
-  }
-  res.render("login", { error: null }); // ✅ tambahkan "error" supaya tidak undefined
-});
-
-
-// Register page
-app.get("/register", (req, res) => {
-  res.render("register");
-});
-
-// Handle register
-app.post("/register", async (req, res) => {
-  const { fullname, email, phone, password, confirmPassword } =
-    req.body;
-
-  if (password !== confirmPassword) {
-    return res.send("Password dan Konfirmasi Password tidak sama!");
-  }
-
-  try {
-    const user = await admin.auth().createUser({ email, password });
-
-    // Simpan user ke Firestore
-    await db.collection("users").doc(user.uid).set({
-      fullname,
-      email,
-      phone,
-      role: "user", // default role for new user
-      createdAt: new Date(),
-    });
-
-    console.log("User saved to Firestore with UID:", user.uid);
-    res.redirect("/login");
-  } catch (error) {
-    res.send("Error: " + error.message);
-  }
-});
-
-// Handle login
-const axios = require("axios");
-
-app.post("/login", async (req, res) => {
-  const { email, password } = req.body;
-
-  try {
-    // Kirim request ke Firebase Auth REST API
-    const response = await axios.post(
-      `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${process.env.FIREBASE_WEB_API_KEY}`,
-      {
-        email,
-        password,
-        returnSecureToken: true,
-      }
-    );
-
-    const firebaseUid = response.data.localId;
-
-    // Ambil data user dari Firestore
-    const userDoc = await db.collection("users").doc(firebaseUid).get();
-    if (!userDoc.exists) {
-      return res.send("User tidak ditemukan di database!");
-    }
-
-    const userData = userDoc.data();
-
-    req.session.user = {
-      uid: firebaseUid,
-      email: email,
-      role: userData.role,
-    };
-
-    if (userData.role === "admin") {
-      res.redirect("/home_admin");
-    } else {
-      res.redirect("/home");
-    }
-  } catch (error) {
-    console.error("Login Error:", error.response?.data || error.message);
-    res.render("login", { error: "Email atau password salah!" });
-  }
-});
-
-// Handle logout
-app.get("/logout", (req, res) => {
-  req.session.destroy((err) => {
-    if (err) {
-      console.error("Error destroying session:", err);
-    }
-    res.redirect("/login");
-  });
-});
-
 
 // home page
 app.get("/home", async (req, res) => {
