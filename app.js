@@ -4,7 +4,7 @@ const bodyParser = require("body-parser");
 const path = require("path");
 const session = require("express-session");
 const midtransClient = require("midtrans-client");
-const { admin, db } = require("./firebase/firestore");
+const { admin, db } = require("./src/config/firestore");
 
 const app = express();
 
@@ -59,11 +59,11 @@ app.use(
 
 app.use(bodyParser.urlencoded({ extended: true }));
 app.set("view engine", "ejs");
-app.set("views", path.join(__dirname, "views"));
-app.use(express.static(path.join(__dirname, "public")));
+app.set("views", path.join(__dirname, "src/views"));
+app.use(express.static(path.join(__dirname, "src/public")));
 app.use(express.json());
 
-const authRoutes = require("./routes/authRoutes");
+const authRoutes = require("./src/routes/authRoutes");
 app.use("/", authRoutes);
 
 // Redirect default ke halaman login
@@ -81,14 +81,14 @@ app.get("/home", async (req, res) => {
     const uid = req.session.user.uid;
     const userDoc = await db.collection("users").doc(uid).get();
 
-    if(!userDoc.exists) {
+    if (!userDoc.exists) {
       return res.send("Data user tidak ditemukan!");
     }
 
     const userData = userDoc.data();
 
-    res.render("home", { user: userData});
-  }catch(error){
+    res.render("home", { user: userData });
+  } catch (error) {
     res.send("Error ambil data user: " + error.message);
   }
 });
@@ -112,39 +112,45 @@ app.get("/home_admin", async (req, res) => {
 
     // Get all orders
     const orderSnapshot = await db.collection("order").get();
-    const ordersList = await Promise.all(orderSnapshot.docs.map(async (doc) => {
-      const orderData = doc.data();
-      const userId = orderData.userid;
+    const ordersList = await Promise.all(
+      orderSnapshot.docs.map(async (doc) => {
+        const orderData = doc.data();
+        const userId = orderData.userid;
 
-      let userFullName = "User tidak ditemukan";
-      if (userId) {
-        const userDoc = await db.collection("users").doc(userId).get();
-        if (userDoc.exists) {
-          userFullName = userDoc.data().fullname;
+        let userFullName = "User tidak ditemukan";
+        if (userId) {
+          const userDoc = await db.collection("users").doc(userId).get();
+          if (userDoc.exists) {
+            userFullName = userDoc.data().fullname;
+          }
         }
-      }
 
-      let products = [];
-      if (Array.isArray(orderData.cart)) {
-        for (const item of orderData.cart) {
-          const productName = item.productName || "Produk Tidak Dikenal";
-          const quantity = item.quantity || 1;
-          products.push({ name: productName, quantity });
+        let products = [];
+        if (Array.isArray(orderData.cart)) {
+          for (const item of orderData.cart) {
+            const productName = item.productName || "Produk Tidak Dikenal";
+            const quantity = item.quantity || 1;
+            products.push({ name: productName, quantity });
+          }
         }
-      }
 
-      return {
-        id: doc.id,
-        ...orderData,
-        orderId: orderData.orderId || doc.id,
-        userFullName,
-        total_harga: orderData.total_harga || 0,
-        status: orderData.status || "Belum Dibuat",
-        products: products,
-      };
-    }));
+        return {
+          id: doc.id,
+          ...orderData,
+          orderId: orderData.orderId || doc.id,
+          userFullName,
+          total_harga: orderData.total_harga || 0,
+          status: orderData.status || "Belum Dibuat",
+          products: products,
+        };
+      })
+    );
 
-    res.render("home_admin", { user: userData, produk: produkList, orders: ordersList });
+    res.render("home_admin", {
+      user: userData,
+      produk: produkList,
+      orders: ordersList,
+    });
   } catch (error) {
     res.send("Error mengambil data: " + error.message);
   }
@@ -163,7 +169,7 @@ app.get("/profile", async (req, res) => {
     return res.send("Data user tidak ditemukan!");
   }
 
-  res.render("profile", { user: userDoc.data()  });
+  res.render("profile", { user: userDoc.data() });
 });
 
 app.get("/detail/:id", (req, res) => {
@@ -300,8 +306,12 @@ app.get("/history", async (req, res) => {
 
     let orders = ordersSnap.docs.map((doc) => doc.data());
     orders.sort((a, b) => {
-      const dateA = a.tanggal_pemesanan?.toDate ? a.tanggal_pemesanan.toDate() : a.tanggal_pemesanan;
-      const dateB = b.tanggal_pemesanan?.toDate ? b.tanggal_pemesanan.toDate() : b.tanggal_pemesanan;
+      const dateA = a.tanggal_pemesanan?.toDate
+        ? a.tanggal_pemesanan.toDate()
+        : a.tanggal_pemesanan;
+      const dateB = b.tanggal_pemesanan?.toDate
+        ? b.tanggal_pemesanan.toDate()
+        : b.tanggal_pemesanan;
       return new Date(dateB) - new Date(dateA);
     });
     res.render("history", { orders });
@@ -403,13 +413,16 @@ app.post("/produk", async (req, res) => {
   const { nama_produk, Deskripsi, Harga, Gambar } = req.body;
 
   try {
-    await db.collection("produk").doc(nama_produk).set({
-      nama_produk,
-      Deskripsi,
-      Harga: parseFloat(Harga),
-      Gambar,
-      createdAt: new Date(),
-    });
+    await db
+      .collection("produk")
+      .doc(nama_produk)
+      .set({
+        nama_produk,
+        Deskripsi,
+        Harga: parseFloat(Harga),
+        Gambar,
+        createdAt: new Date(),
+      });
     res.redirect("/produk");
   } catch (error) {
     res.send("Error menambah produk: " + error.message);
@@ -471,11 +484,14 @@ app.post("/produk/edit/:id", async (req, res) => {
   const { Deskripsi, Harga, Gambar } = req.body;
 
   try {
-    await db.collection("produk").doc(id).update({
-      Deskripsi,
-      Harga: parseFloat(Harga),
-      Gambar,
-    });
+    await db
+      .collection("produk")
+      .doc(id)
+      .update({
+        Deskripsi,
+        Harga: parseFloat(Harga),
+        Gambar,
+      });
 
     res.redirect("/produk");
   } catch (error) {
@@ -522,7 +538,10 @@ app.get("/order", async (req, res) => {
         for (const item of orderData.cart) {
           let productName = item.productName;
           try {
-            const productDoc = await db.collection("produk").doc(productName).get();
+            const productDoc = await db
+              .collection("produk")
+              .doc(productName)
+              .get();
             if (productDoc.exists) {
               productNames.push(productDoc.data().nama_produk);
             } else {

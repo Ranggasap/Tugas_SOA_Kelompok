@@ -1,5 +1,5 @@
 const axios = require("axios");
-const { admin, db } = require("../firebase/firestore");
+const { admin, db } = require("../config/firestore");
 
 exports.registerUser = async (data) => {
   try {

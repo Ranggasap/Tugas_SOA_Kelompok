@@ -97,8 +97,8 @@
     </div>
 
     <script>
-                 // Initialize cart data from server-side variable
-      const cart = <%- JSON.stringify(cart) %>;
+      // Initialize cart data from server-side variable
+      const cart = JSON.parse('<%- JSON.stringify(cart) %>');
       function formatRupiah(num) {
         return 'Rp ' + num.toLocaleString('id-ID');
       }
