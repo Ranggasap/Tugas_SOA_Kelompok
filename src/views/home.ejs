@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Florist App - Home</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Lato:wght@300;400;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/css/style.css" />
+  </head>
+  <body>
+    <!-- ====================== VIEWS: UI LAYER ====================== -->
+    <!-- Header -->
+    <nav
+      class="navbar fixed-top shadow-sm px-4 d-flex justify-content-between align-items-center"
+    >
+      <!-- Kiri: logo -->
+      <div class="flex-grow-1">
+        <img src="/asset/image/Logo V3.png" alt="Logo" class="logo-img me-2">
+        <!-- <h1 class="store-name mb-0">Gunawan Florist</h1> -->
+      </div>
+
+      <!-- Tengah: Nama Toko -->
+      <div class="text-center flex-grow-1">
+        <h1 class="store-name">Igun Florist</h1>
+      </div>
+
+      <!-- Kanan: Cart -->
+      <div>
+        <a href="/profile" class="btn btn-cart">
+          <i class="fas fa-user-circle me-2"></i>
+          <span class="d-none d-md-inline">Profile</span>
+        </a>
+        <a href="/history" class="btn btn-cart">
+          <i class="fas fa-history mb-1"></i>
+          <span class="d-none d-md-inline">History</span>
+        </a>
+        <a href="/cart" class="btn btn-cart">
+          <i class="fas fa-shopping-bag me-1"></i>
+          <span class="d-none d-md-inline">Cart</span>
+          <span id="cartCount" class="badge">0</span>
+        </a>
+      </div>
+    </nav>
+
+    <!-- Search Section -->
+    <div class="container mt-4">
+      <div class="search-section">
+        <div class="row justify-content-center">
+          <div class="col-md-8">
+            <div class="input-group input-group-lg">
+              <input
+                id="mainSearch"
+                class="form-control"
+                type="search"
+                placeholder="Cari bunga impian Anda..."
+              />
+              <button
+                class="btn btn-custom"
+                type="button"
+                onclick="performSearch()"
+              >
+                <i class="fas fa-search me-2"></i>Cari
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="container">
+      <h2 class="section-title text-center d-block w-100">
+        <i class="fas fa-seedling me-3"></i>Koleksi Bunga Premium
+      </h2>
+      <div class="row" id="productGrid">
+        <!-- Loading state -->
+        <div class="col-12">
+          <div class="loading-container">
+            <div class="loading-spinner"></div>
+            <p class="loading-text">
+              Memuat koleksi bunga terbaik untuk Anda...
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal Produk -->
+    <div class="modal fade" id="productModal" tabindex="-1">
+      <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="modalName">
+              <i class="fas fa-flower me-2"></i>
+            </h5>
+            <button
+              type="button"
+              class="btn-close btn-close-black"
+              data-bs-dismiss="modal"
+            ></button>
+          </div>
+          <div class="modal-body text-center p-4">
+            <img
+              id="modalImg"
+              src=""
+              class="modal-img img-fluid rounded-3 mb-4"
+            />
+            <p id="modalDesc" class="text-muted fs-6 mb-4"></p>
+            <div class="d-flex justify-content-center align-items-center mb-4">
+              <h3 class="price-tag mb-0" id="modalPrice"></h3>
+            </div>
+          </div>
+          <div class="modal-footer justify-content-center border-0">
+            <button
+              type="button"
+              class="btn btn-outline-secondary me-3"
+              data-bs-dismiss="modal"
+            >
+              <i class="fas fa-times me-2"></i>Tutup
+            </button>
+            <button class="btn btn-custom btn-lg" id="addToCartBtn">
+              <i class="fas fa-cart-plus me-2"></i>Tambahkan ke Keranjang
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Success Toast -->
+    <div class="toast-container position-fixed bottom-0 end-0 p-3">
+      <div id="successToast" class="toast" role="alert">
+        <div class="toast-header bg-success text-white">
+          <i class="fas fa-check-circle me-2"></i>
+          <strong class="me-auto">Berhasil!</strong>
+          <button
+            type="button"
+            class="btn-close btn-close-white"
+            data-bs-dismiss="toast"
+          ></button>
+        </div>
+        <div class="toast-body" id="toastMessage">
+          Produk berhasil ditambahkan ke keranjang!
+        </div>
+      </div>
+    </div>
+    <!-- ====================== END VIEWS ====================== -->
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Firebase SDK v9 (modular) -->
+    <script type="module">
+      // ====================== SERVICE LAYER: Database & API Communication ======================
+      import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+      import {
+        getFirestore,
+        collection,
+        getDocs,
+        onSnapshot,
+      } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+      import {
+        getAuth,
+        onAuthStateChanged,
+      } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+
+      // Firebase Configuration
+      const firebaseConfig = {
+        apiKey: "AIzaSyBgSh39-LZUjqwisirJNPF1EIMcRvp_F48",
+        authDomain: "florist-app-70c3d.firebaseapp.com",
+        projectId: "florist-app-70c3d",
+        storageBucket: "florist-app-70c3d.firebasestorage.app",
+        messagingSenderId: "692096916407",
+        appId: "1:692096916407:web:d6a76e5fa2d6c699e2e632",
+      };
+
+      // Initialize Firebase
+      const app = initializeApp(firebaseConfig);
+      const db = getFirestore(app);
+      const auth = getAuth(app);
+
+      // Global variables
+      let currentProducts = [];
+      let allProducts = [];
+      let cart = JSON.parse(localStorage.getItem("cart")) || [];
+
+      // Make functions globally accessible
+      window.showProductModal = showProductModal;
+      window.goToCart = goToCart;
+      window.goToHome = goToHome;
+      window.goToHistory = goToHistory;
+      window.performSearch = performSearch;
+
+      // ====================== VIEWS HELPER: UI Update Functions ======================
+      // Update cart count
+      function updateCartCount() {
+        document.getElementById("cartCount").textContent = cart.length;
+      }
+
+      // Show success toast
+      function showSuccessToast(message) {
+        document.getElementById("toastMessage").textContent = message;
+        const toast = new bootstrap.Toast(
+          document.getElementById("successToast")
+        );
+        toast.show();
+      }
+
+      // ====================== SERVICE: Load Products from Firestore ======================
+      // Load products from Firestore
+      async function loadProductsFromFirestore() {
+        const productGrid = document.getElementById("productGrid");
+
+        try {
+          console.log("Loading products from Firestore...");
+
+          // Real-time listener for products collection
+          const unsubscribe = onSnapshot(
+            collection(db, "produk"),
+            (querySnapshot) => {
+              allProducts = [];
+
+              querySnapshot.forEach((doc) => {
+                const data = doc.data();
+                console.log("Product data:", doc.id, data);
+
+                allProducts.push({
+                  id: doc.id, // Nama produk dari document ID
+                  name: doc.id,
+                  price: parseInt(data.Harga) || 0,
+                  description: data.Deskripsi || "Deskripsi tidak tersedia",
+                  image:
+                    data.Gambar ||
+                    "https://via.placeholder.com/400x300?text=No+Image",
+                });
+              });
+
+              console.log("Total products loaded:", allProducts.length);
+              currentProducts = [...allProducts];
+              renderProducts(currentProducts);
+            },
+            (error) => {
+              console.error("Error listening to products: ", error);
+              showErrorState("Gagal memuat produk dari database");
+            }
+          );
+        } catch (error) {
+          console.error("Error initializing Firestore: ", error);
+          showErrorState("Tidak dapat terhubung ke database");
+        }
+      }
+
+      // ====================== VIEWS: Render UI Functions ======================
+      // Show error state
+      function showErrorState(message) {
+        const productGrid = document.getElementById("productGrid");
+        productGrid.innerHTML = `
+        <div class="col-12 text-center py-5">
+          <div class="alert-error">
+            <i class="fas fa-exclamation-triangle mb-3" style="font-size: 3rem;"></i>
+            <h5>Terjadi Kesalahan</h5>
+            <p class="mb-3">${message}</p>
+            <button class="btn btn-custom" onclick="location.reload()">
+              <i class="fas fa-refresh me-2"></i>Coba Lagi
+            </button>
+          </div>
+        </div>
+      `;
+      }
+
+      // Render products with enhanced animations
+      function renderProducts(products) {
+        const productGrid = document.getElementById("productGrid");
+        productGrid.innerHTML = "";
+
+        if (products.length === 0) {
+          productGrid.innerHTML = `
+          <div class="col-12 text-center py-5">
+            <div class="alert-error">
+              <i class="fas fa-search mb-3" style="font-size: 3rem;"></i>
+              <h5>Tidak ada produk ditemukan</h5>
+              <p class="mb-0">Coba gunakan kata kunci pencarian yang berbeda atau refresh halaman</p>
+            </div>
+          </div>
+        `;
+          return;
+        }
+
+        products.forEach((product, index) => {
+          const col = document.createElement("div");
+          col.className = "col-xl-4 col-lg-6 col-md-6 mb-4";
+          col.style.animationDelay = `${index * 0.1}s`;
+          col.innerHTML = `
+          <div class="product-card h-100 animate-in" onclick="showProductModal('${
+            product.id
+          }')">
+            <div class="product-badge">Premium</div>
+            <img src="${product.image}" 
+                 class="product-img" 
+                 alt="${product.name}" 
+                 onerror="this.src='https://via.placeholder.com/400x300/556B2F/ffffff?text=Bunga'">
+            <h5 class="product-title">${product.name}</h5>
+            <div class="price-tag">Rp ${product.price.toLocaleString(
+              "id-ID"
+            )}</div>
+            <p class="product-desc">${
+              product.description.length > 100
+                ? product.description.substring(0, 100) + "..."
+                : product.description
+            }</p>
+            <div class="mt-auto">
+              <div class="rating mb-2">
+                <i class="fas fa-star"></i>
+                <i class="fas fa-star"></i>
+                <i class="fas fa-star"></i>
+                <i class="fas fa-star"></i>
+                <i class="fas fa-star"></i>
+                <span class="ms-1">(4.9)</span>
+              </div>
+              <small class="text-success">
+                <i class="fas fa-shipping-fast me-1"></i>Pengiriman Cepat
+              </small>
+            </div>
+          </div>
+        `;
+          productGrid.appendChild(col);
+        });
+      }
+
+      // ====================== CONTROLLER: User Interaction Handlers ======================
+      // Show product modal
+      function showProductModal(productId) {
+        const product = allProducts.find((p) => p.id === productId);
+        if (!product) return;
+
+        document.getElementById(
+          "modalName"
+        ).innerHTML = `<i class="fas fa-flower me-2"></i>${product.name}`;
+        document.getElementById("modalDesc").textContent = product.description;
+        document.getElementById(
+          "modalPrice"
+        ).textContent = `Rp ${product.price.toLocaleString("id-ID")}`;
+        document.getElementById("modalImg").src = product.image;
+
+        // ====================== SERVICE: Add to cart API call ======================
+        // Add to cart functionality using fetch to /cart/update
+        document.getElementById("addToCartBtn").onclick = () => {
+          // Prepare form data
+          const formBody = new URLSearchParams({
+            idProduct: product.id,
+            productName: product.name,
+            productPrice: product.price,
+            qty: 1,
+          }).toString();
+
+          fetch("/cart/update", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/x-www-form-urlencoded",
+            },
+            body: formBody,
+          })
+            .then((response) => {
+              if (response.ok) {
+                // Optionally update local cart for UI, or just increment cart count
+                // Here, let's increment cart count by 1 (or reload from server if needed)
+                // For now, just increment
+                let cartCountElem = document.getElementById("cartCount");
+                let currentCount = parseInt(cartCountElem.textContent, 10);
+                if (isNaN(currentCount)) currentCount = 0;
+                cartCountElem.textContent = currentCount + 1;
+                showSuccessToast(
+                  `${product.name} berhasil ditambahkan ke keranjang!`
+                );
+                bootstrap.Modal.getInstance(
+                  document.getElementById("productModal")
+                ).hide();
+              } else {
+                response.text().then((msg) => {
+                  alert("Gagal menambahkan ke keranjang: " + msg);
+                });
+              }
+            })
+            .catch((error) => {
+              console.error("Error adding to cart:", error);
+              alert("Terjadi kesalahan saat menambahkan ke keranjang.");
+            });
+        };
+
+        new bootstrap.Modal(document.getElementById("productModal")).show();
+      }
+
+      // ====================== CONTROLLER: Search functionality ======================
+      // Search functionality
+      function performSearch() {
+        const keyword = document
+          .getElementById("mainSearch")
+          .value.toLowerCase()
+          .trim();
+        filterProducts(keyword);
+      }
+
+      function filterProducts(keyword) {
+        if (!keyword) {
+          currentProducts = [...allProducts];
+        } else {
+          currentProducts = allProducts.filter(
+            (product) =>
+              product.name.toLowerCase().includes(keyword) ||
+              product.description.toLowerCase().includes(keyword)
+          );
+        }
+        renderProducts(currentProducts);
+      }
+
+      // ====================== CONTROLLER: Navigation functions ======================
+      // Navigation functions
+      function goToCart() {
+        if (cart.length === 0) {
+          alert(
+            "Keranjang Anda masih kosong! Silakan pilih bunga terlebih dahulu."
+          );
+        } else {
+          alert(
+            `Anda memiliki ${cart.length} jenis item di keranjang. Halaman cart akan segera tersedia!`
+          );
+        }
+      }
+
+      function goToHome() {
+        window.location.reload();
+      }
+
+      function goToHistory() {
+        window.location.href = "/history";
+      }
+
+      // ====================== CONTROLLER: Event listeners ======================
+      // Event listeners
+      document.getElementById("mainSearch").addEventListener("input", (e) => {
+        const keyword = e.target.value.toLowerCase().trim();
+        if (keyword === "") {
+          currentProducts = [...allProducts];
+          renderProducts(currentProducts);
+        }
+      });
+
+      // Enter key support for search
+      document
+        .getElementById("mainSearch")
+        .addEventListener("keypress", (e) => {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            performSearch();
+          }
+        });
+
+      // ====================== CONTROLLER: Initialize page ======================
+      // Initialize page
+      document.addEventListener("DOMContentLoaded", () => {
+        updateCartCount();
+        loadProductsFromFirestore();
+      });
+
+      // ====================== SERVICE: Authentication state listener ======================
+      // Authentication state listener
+      onAuthStateChanged(auth, (user) => {
+        if (user) {
+          console.log("User logged in:", user.email);
+        } else {
+          console.log("No user logged in");
+        }
+      });
+    </script>
+  </body>
+</html>
