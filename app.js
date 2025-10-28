@@ -8,46 +8,17 @@ const { admin, db } = require("./src/config/firestore");
 
 const app = express();
 
-// start payments session testing
-app.set("trust proxy", true); // jangan pakai 1, biar auto deteksi dari ngrok
+app.set("trust proxy", true);
 
-app.use(
-  session({
-    secret: process.env.SESSION_SECRET || "my-secret-key",
-    resave: false,
-    saveUninitialized: false,
-    proxy: true, // penting kalau pakai ngrok atau proxy
-    cookie: {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
-      maxAge: 1000 * 60 * 60,
-    },
-  })
-);
-
-// end payments session testing
-app.use(bodyParser.urlencoded({ extended: true }));
-
-// start payments session testing
-app.use(express.json());
-
-// end payments session testing
-app.set("view engine", "ejs");
-app.set("views", path.join(__dirname, "views"));
-app.use(express.static(path.join(__dirname, "public")));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Middleware & Session Configuration
-app.set("trust proxy", true);
-
-// Session setup with cookie options
 app.use(
   session({
     secret: process.env.SESSION_SECRET || "my-secret-key",
     resave: false,
     saveUninitialized: false,
+    proxy: true, // penting untuk ngrok / railway
     cookie: {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
@@ -57,11 +28,9 @@ app.use(
   })
 );
 
-app.use(bodyParser.urlencoded({ extended: true }));
 app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, "src/views"));
 app.use(express.static(path.join(__dirname, "src/public")));
-app.use(express.json());
 
 const authRoutes = require("./src/routes/authRoutes");
 app.use("/", authRoutes);
