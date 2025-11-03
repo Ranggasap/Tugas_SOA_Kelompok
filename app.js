@@ -35,11 +35,17 @@ app.use(express.static(path.join(__dirname, "src/public")));
 const authRoutes = require("./src/routes/authRoutes");
 app.use("/", authRoutes);
 
-const historyRoutes = require("./src/routes/historyRoutes")
-app.use("/history", historyRoutes)
+const historyRoutes = require("./src/routes/historyRoutes");
+app.use("/history", historyRoutes);
 
 const cartRoutes = require("./src/routes/cartRoutes");
-app.use("/cart", cartRoutes)
+app.use("/cart", cartRoutes);
+
+const midtransRoutes = require("./src/routes/midtransRoutes");
+app.use("/", midtransRoutes);
+
+const checkoutRoutes = require("./src/routes/checkoutRoutes");
+app.use("/", checkoutRoutes);
 
 // Redirect default ke halaman login
 app.get("/", (req, res) => {
@@ -174,7 +180,6 @@ app.get("/detail/:id", (req, res) => {
   }
 });
 
-
 // payment page
 app.get("/payments", async (req, res) => {
   if (!req.session.user) {
@@ -188,78 +193,6 @@ app.get("/payments", async (req, res) => {
 
   const userData = userDoc.data();
   res.render("payments", { user: userData });
-});
-
-// start checkout route
-app.post("/checkout", async (req, res) => {
-  if (!req.session.user) {
-    return res.status(401).send("Silakan login dulu!");
-  }
-
-  try {
-    const userDoc = await db
-      .collection("users")
-      .doc(req.session.user.uid)
-      .get();
-    if (!userDoc.exists) {
-      return res.status(404).send("User tidak ditemukan!");
-    }
-
-    const userData = userDoc.data();
-
-    if (!userData.cart || userData.cart.length === 0) {
-      return res.send("Keranjang kosong!");
-    }
-
-    // hitung total harga
-    const totalPrice = userData.cart.reduce(
-      (sum, item) =>
-        sum + Number(item.productPrice || 0) * Number(item.productQty || 1),
-      0
-    );
-
-    const orderId = "ORDER-" + req.session.user.uid + "-" + Date.now();
-
-    await db.collection("pendingOrders").doc(orderId).set({
-      uid: req.session.user.uid,
-      cart: userData.cart,
-      grossAmount: totalPrice,
-      createdAt: admin.firestore.FieldValue.serverTimestamp(),
-    });
-
-    let snap = new midtransClient.Snap({
-      isProduction: false,
-      serverKey: process.env.MIDTRANS_SERVER_KEY,
-      clientKey: process.env.MIDTRANS_CLIENT_KEY,
-    });
-
-    const parameter = {
-      transaction_details: {
-        order_id: orderId,
-        gross_amount: totalPrice,
-      },
-      customer_details: {
-        first_name: userData.fullname,
-        email: userData.email,
-        phone: userData.phone,
-        billing_address: {
-          address: userData.address,
-        },
-      },
-      item_details: userData.cart.map((item) => ({
-        id: item.idProduct || item.idCart || String(Math.random()).slice(2),
-        price: Number(item.productPrice || 0),
-        quantity: Number(item.productQty || 1),
-        name: item.productName || "Item",
-      })),
-    };
-
-    const transaction = await snap.createTransaction(parameter);
-    res.send(transaction.token);
-  } catch (error) {
-    console.error("Checkout Error:", error);
-    res.status(500).send("Terjadi kesalahan saat checkout!");
-  }
 });
 
 // Add product with the product name as the document ID
@@ -460,121 +393,6 @@ app.get("/user", async (req, res) => {
     res.send("Error mengambil data user: " + error.message);
   }
 });
-
-// end checkout route
-
-// Midtrans notification handler
-const crypto = require("crypto");
-app.post("/midtrans-notification", async (req, res) => {
-  try {
-    // gunakan body yang sudah di-parse oleh app.use(express.json())
-    const notif = req.body;
-    console.log("📩 Midtrans notification received:", notif);
-
-    const {
-      order_id,
-      status_code,
-      gross_amount,
-      signature_key,
-      transaction_status,
-      payment_type,
-    } = notif;
-
-    // verify signature
-    const serverKey = process.env.MIDTRANS_SERVER_KEY;
-    const input = `${order_id}${status_code}${gross_amount}${serverKey}`;
-    const computed = crypto.createHash("sha512").update(input).digest("hex");
-
-    if (computed !== signature_key) {
-      console.warn(
-        "❌ Invalid signature for order",
-        order_id,
-        "computed:",
-        computed,
-        "received:",
-        signature_key
-      );
-      return res.status(400).send("Invalid signature");
-    }
-
-    console.log("✅ Signature verified for order:", order_id);
-
-    // ambil pendingOrder yg sebelumnya kita simpan saat checkout
-    const pendingRef = db.collection("pendingOrders").doc(order_id);
-    const pendingSnap = await pendingRef.get();
-    if (!pendingSnap.exists) {
-      console.warn("⚠️ pendingOrder tidak ditemukan for", order_id);
-      // Balas OK supaya Midtrans tidak retry terus; atau log untuk investigasi.
-      return res.status(200).send("OK");
-    }
-
-    const pendingData = pendingSnap.data();
-    const uid = pendingData.uid;
-    const cart = pendingData.cart || [];
-
-    // 🔹 Tambahkan verifikasi gross_amount disini
-    const expectedAmount = cart.reduce(
-      (sum, item) =>
-        sum + Number(item.productPrice || 0) * Number(item.productQty || 1),
-      0
-    );
-
-    if (Number(gross_amount) !== expectedAmount) {
-      console.warn(
-        `⚠️ Gross amount mismatch! Order: ${order_id}, expected: ${expectedAmount}, received: ${gross_amount}`
-      );
-      return res.status(400).send("Amount mismatch");
-    }
-
-    // Tentukan status final
-    let status = "Pending";
-    if (
-      transaction_status === "settlement" ||
-      transaction_status === "capture"
-    ) {
-      status = "Done";
-      // Hapus pending order hanya jika status final
-      await pendingRef.delete();
-    } else if (
-      transaction_status === "deny" ||
-      transaction_status === "cancel" ||
-      transaction_status === "expire"
-    ) {
-      status = "Failed";
-      await pendingRef.delete();
-      // Opsional: hapus pending Order juga kalau transaksi gagal
-    }
-    // Simpan order ke Firestore collection "order"
-    const orderRef = db.collection("order").doc(order_id);
-    await orderRef.set({
-      orderId: order_id,
-      userid: uid,
-      idproduk: cart.map((i) => i.idProduct || i.idCart || ""),
-      cart: cart,
-      total_harga: Number(gross_amount),
-      payment: (payment_type || "").toUpperCase(),
-      status,
-      tanggal_pemesanan: admin.firestore.FieldValue.serverTimestamp(),
-      rawNotification: notif,
-    });
-
-    console.log("🎉 Order updated to Firestore:", order_id);
-
-    // Bersihkan cart user (opsional)
-    try {
-      await db.collection("users").doc(uid).update({ cart: [] });
-      console.log("🧹 Cart cleared for user:", uid);
-    } catch (e) {
-      console.warn("⚠️ Gagal membersihkan cart untuk user:", uid, e.message);
-    }
-
-    res.status(200).send("OK");
-  } catch (error) {
-    console.error("Midtrans Notification Error:", error);
-    return res.status(500).send("Error");
-  }
-});
-// end Midtrans notification handler
 
 // Final server initialization
 const PORT = process.env.PORT || 3000;
