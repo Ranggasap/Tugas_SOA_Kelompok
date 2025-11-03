@@ -35,6 +35,12 @@ app.use(express.static(path.join(__dirname, "src/public")));
 const authRoutes = require("./src/routes/authRoutes");
 app.use("/", authRoutes);
 
+const historyRoutes = require("./src/routes/historyRoutes")
+app.use("/history", historyRoutes)
+
+const cartRoutes = require("./src/routes/cartRoutes");
+app.use("/cart", cartRoutes)
+
 // Redirect default ke halaman login
 app.get("/", (req, res) => {
   return res.redirect("/login");
@@ -168,127 +174,6 @@ app.get("/detail/:id", (req, res) => {
   }
 });
 
-// Cart Page
-app.get("/cart", async (req, res) => {
-  if (!req.session.user) {
-    return res.redirect("/login");
-  }
-  const email = req.session.user.email;
-  const usersRef = db.collection("users");
-  const snapshot = await usersRef.where("email", "==", email).get();
-  if (snapshot.empty) {
-    console.log("User not found");
-    return res.send("User not found");
-  }
-  const userData = snapshot.docs[0].data();
-  console.log("User Data: ", userData);
-  const cart = userData.cart || [];
-
-  if (
-    req.headers.accept &&
-    req.headers.accept.indexOf("application/json") !== -1
-  ) {
-    return res.json({ cart });
-  }
-
-  res.render("cart", { cart });
-});
-
-app.post("/cart/update", async (req, res) => {
-  if (!req.session.user) {
-    return res.redirect("/login");
-  }
-  // console.log("Req cart: ", req)
-  try {
-    const userRecord = await admin
-      .auth()
-      .getUserByEmail(req.session.user.email);
-    if (!userRecord) {
-      return res.status(404).send("User not found");
-    }
-    const userRef = db.collection("users").doc(userRecord.uid);
-    const userDoc = await userRef.get();
-    if (!userDoc.exists) {
-      return res.status(404).send("User data not found");
-    }
-
-    const { idProduct, productName, productPrice, qty } = req.body;
-    // console.log("idProduct: ", idProduct )
-    let quantity = parseInt(qty);
-    if (isNaN(quantity)) quantity = 0;
-
-    let cart = userDoc.data().cart || [];
-
-    // Check if product exists in cart
-    const productIndex = cart.findIndex((item) => item.idProduct === idProduct);
-
-    if (productIndex !== -1) {
-      // Product exists, update quantity
-      cart[productIndex].productQty += quantity;
-
-      // Remove product if qty <= 0
-      if (cart[productIndex].productQty <= 0) {
-        cart.splice(productIndex, 1);
-      }
-    } else {
-      // Product does not exist, add new if qty > 0
-      if (quantity > 0) {
-        let newIdCart = 1;
-        if (cart.length > 0) {
-          const maxId = Math.max(...cart.map((item) => item.idCart));
-          newIdCart = maxId + 1;
-        }
-        cart.push({
-          idCart: newIdCart,
-          idProduct: idProduct,
-          productName: productName,
-          productPrice: Number(productPrice),
-          productQty: quantity,
-        });
-      }
-    }
-
-    await userRef.update({ cart });
-
-    res.send("Cart updated successfully");
-  } catch (error) {
-    console.error("Error updating cart:", error);
-    res.status(500).send("Error updating cart");
-  }
-});
-
-// History Page
-app.get("/history", async (req, res) => {
-  if (!req.session.user) {
-    return res.redirect("/login");
-  }
-  try {
-    const userId = req.session.user.uid; // ambil dari session
-    const ordersSnap = await db
-      .collection("order")
-      .where("userid", "==", userId)
-      .get();
-
-    if (ordersSnap.empty) {
-      return res.render("history", { orders: [] });
-    }
-
-    let orders = ordersSnap.docs.map((doc) => doc.data());
-    orders.sort((a, b) => {
-      const dateA = a.tanggal_pemesanan?.toDate
-        ? a.tanggal_pemesanan.toDate()
-        : a.tanggal_pemesanan;
-      const dateB = b.tanggal_pemesanan?.toDate
-        ? b.tanggal_pemesanan.toDate()
-        : b.tanggal_pemesanan;
-      return new Date(dateB) - new Date(dateA);
-    });
-    res.render("history", { orders });
-  } catch (error) {
-    console.error("Error fetching orders:", error);
-    res.send("Error fetching orders");
-  }
-});
 
 // payment page
 app.get("/payments", async (req, res) => {
