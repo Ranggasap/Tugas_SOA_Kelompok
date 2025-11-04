@@ -1,4 +1,4 @@
-// public/js/home.js - Client-side JavaScript for Home Page
+// Home Page
 
 let currentProducts = [];
 let allProducts = [];

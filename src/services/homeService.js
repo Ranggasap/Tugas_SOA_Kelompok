@@ -1,7 +1,7 @@
 const { db } = require("../config/firestore");
 
 class HomeService {
-  // Get all products from Firestore
+  // Get all products from Firestore database
   async getAllProducts() {
     try {
       const snapshot = await db.collection("produk").get();

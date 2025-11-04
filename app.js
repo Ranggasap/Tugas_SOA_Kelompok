@@ -48,7 +48,7 @@ const checkoutRoutes = require("./src/routes/checkoutRoutes");
 app.use("/", checkoutRoutes);
 
 const homeRoutes = require("./src/routes/homeRoutes");
-app.use("/", homeRoutes);
+app.use("/", homeRoutes); //home
 
 // Redirect default ke halaman login
 app.get("/", (req, res) => {

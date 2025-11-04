@@ -10,7 +10,7 @@ class HomeController {
     }
 
     try {
-      // Get user data from Firestore
+      // Get user data from Firestore database
       const uid = req.session.user.uid;
       const userDoc = await db.collection("users").doc(uid).get();
 
