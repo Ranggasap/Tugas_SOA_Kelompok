@@ -1,7 +1,6 @@
 const { db } = require("../config/firestore");
 
 exports.getHistoryPage = async (req, res) => {
-//   console.log("Get History Page");
   if (!req.session.user) {
     return res.redirect("/login");
   }
@@ -11,9 +10,8 @@ exports.getHistoryPage = async (req, res) => {
     const ordersSnap = await db
       .collection("order")
       .where("userid", "==", userId)
-    //   .get();
-    // console.log("UserId: ", userId)
-    // console.log("Orders Found: ", ordersSnap.size)
+      .get();
+
     if (ordersSnap.empty) {
       return res.render("history", { orders: [] });
     }
